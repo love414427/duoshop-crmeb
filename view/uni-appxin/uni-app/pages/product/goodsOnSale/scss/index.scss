@@ -1,0 +1,22 @@
+
+.title {
+	background: #fff;
+	.search {
+		padding: 30rpx 25rpx;
+	}
+	.menu {
+		padding: 0rpx 25rpx;
+	}
+	.menu_list {
+		display: flex;
+		&_item {
+			margin-right: 70rpx;
+			white-space: nowrap;
+			padding-bottom: 24rpx;
+		}
+		.selectMenuId {
+			border-bottom: 6rpx solid #e93323;
+		}
+	}
+}
+

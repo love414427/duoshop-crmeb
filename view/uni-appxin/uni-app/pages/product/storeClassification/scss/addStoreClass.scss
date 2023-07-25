@@ -1,0 +1,166 @@
+.container {
+	padding-top: 20rpx;
+	padding-bottom: 126rpx;
+}
+
+.input_content {
+	background: #fff;
+	padding: 20rpx 40rpx 40rpx 30rpx;
+	width: 710rpx;
+	margin: auto;
+	box-sizing: border-box;
+	border-radius: 10rpx;
+	&_textarea {
+		border-bottom: 1px solid #eeeeee;
+		padding-bottom: 19rpx;
+		textarea {
+			height: 114rpx;
+		}
+		> view {
+			text-align: right;
+			color: #666666;
+			font-size: 24rpx;
+		}
+	}
+
+	&_photo {
+		margin-top: 41rpx;
+		display: flex;
+		flex-wrap: wrap;
+		.photos{
+			width: 156rpx;
+			height: 156rpx;
+		}
+		&_adPh {
+			position: relative;
+			width: 156rpx;
+			height: 156rpx;
+			border: 1px solid #dddddd;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			border-radius: 8rpx;
+			margin-right: 30rpx;
+			margin-bottom: 30rpx;
+			> image {
+				height: 100%;
+				margin: auto;
+			}
+			> view:nth-child(1) {
+				height: 37rpx;
+				margin-bottom: 16rpx;
+				display: flex;
+				justify-content: center;
+				image {
+					width: 45rpx;
+					display: block;
+				}
+			}
+
+			> view:nth-child(2) {
+				text-align: center;
+				color: #bbbbbb;
+				font-size: 24rpx;
+			}
+			&_jiao {
+				position: absolute;
+				top: -14rpx;
+				right: -14rpx;
+				width: 40rpx;
+				height: 40rpx;
+				background: #e93323;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-radius: 50%;
+				image {
+					width: 16rpx;
+					height: 16rpx;
+				}
+			}
+			
+		}
+	}
+	
+	
+}
+.list_content {
+	margin-top: 31rpx;
+	padding: 0 20rpx;
+}
+.handle {
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	height: 126rpx;
+	width: 100%;
+	background: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	&_button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 32rpx;
+		color: #fff;
+		width: 690rpx;
+		height: 86rpx;
+		background: #e93323;
+		border-radius: 43rpx;
+	}
+}
+.placeholderStyle {
+	color: #bbbbbb;
+	font-size: 30rpx;
+}
+.list_item {
+	background: #fff;
+	padding: 0rpx 30rpx;
+	min-height: 106rpx;
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 20rpx;
+	position: relative;
+	.iconfont {
+		font-size: 14px;
+		color: #BBBBBB;
+		position: absolute;
+		/*#ifndef MP*/
+		right: 0;
+		/*#endif*/
+		/*#ifdef MP || APP-PLUS*/
+		right: 20rpx;
+		/*#endif*/
+		top: 50%;
+		margin-top: -12rpx;
+	}
+	&_title {
+		color: #333333;
+		font-size: 30rpx;
+		width: 200rpx;
+	}
+	.input_class,.uni-input-input {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		text-align: right;
+		&_con {
+			font-size: 30rpx;
+			text-align: right;
+			flex: 1;
+		}
+		
+	}
+	/deep/.uni-input-input{
+		padding-right: 40rpx;
+		width: 240rpx;
+		text-align: right;
+	}
+}
+.uni-list-cell{
+	position: relative;
+}

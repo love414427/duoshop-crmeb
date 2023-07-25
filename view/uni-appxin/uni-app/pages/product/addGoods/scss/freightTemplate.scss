@@ -1,0 +1,178 @@
+.container {
+	padding-top: 20rpx;
+	padding-bottom: 223rpx;
+}
+.freight_template {
+	background: #fff;
+	width: 710rpx;
+	margin: auto;
+	border-radius: 10rpx;
+	padding: 0 20rpx;
+	&_name {
+		height: 106rpx;
+		border-bottom: 1px solid #eeeeee;
+		display: flex;
+		align-items: center;
+		&_con {
+			flex: 1;
+			padding: 10rpx;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			&_value {
+				flex: 1;
+				text-align: right;
+			}
+		}
+	}
+}
+
+.freight_description {
+	padding-top: 31rpx;
+	padding-bottom: 47rpx;
+	&_title {
+		padding-left: 20rpx;
+		padding-bottom: 20rpx;
+	}
+	&_textarea {
+		padding: 0 20rpx;
+		textarea {
+			padding: 20rpx;
+			width: 630rpx;
+			height: 180rpx;
+			border-radius: 10rpx;
+			background: #f5f5f5;
+		}
+	}
+}
+
+.inputClass_template_name {
+	color: #bbbbbb;
+	font-size: 30rpx;
+}
+
+.textarea_class {
+	color: #bbbbbb;
+	font-size: 28rpx;
+}
+
+.billing_method {
+	margin: auto;
+	margin-top: 30rpx;
+	width: 710rpx;
+	background: #fff;
+	padding: 30rpx 0 36rpx 30rpx;
+	border-radius: 10rpx;
+	&_title {
+		margin-bottom: 42rpx;
+		color: #333333;
+		font-size: 30rpx;
+	}
+	
+	.radioContainer {
+		display: flex;
+		justify-content: space-between;
+		.uni-list-cell {
+			display: flex;
+			padding-right: 74rpx;
+			>view:nth-child(1) {
+			}
+			>view:nth-child(2) {
+				white-space: nowrap;
+			}
+		}
+	}
+	
+}
+
+
+.regional_freight {
+	margin: auto;
+	margin-top: 30rpx;
+	width: 710rpx;
+	height: 106rpx;
+	background: #FFFFFF;
+	border-radius: 10rpx;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 30rpx;
+	&_label {
+		color: #333333;
+		font-size: 30rpx;
+	}
+	
+	&_value {
+		color: #BBBBBB;
+		font-size: 30rpx;
+		>span:nth-child(1) {
+			display: inline-block;
+			margin-right: 15rpx;
+		}
+	}
+}
+
+.free_shipping {
+	background: #fff;
+	width: 710rpx;
+	margin: auto;
+	&_item {
+		height: 106rpx;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 30rpx;
+		&_value {
+			color: #BBBBBB;
+			font-size: 30rpx;
+			display: flex;
+			align-items: center;
+			>span:nth-child(1) {
+				display: inline-block;
+				margin-right: 15rpx;
+				max-width: 400rpx;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+			}
+		}
+	}
+}
+
+.handle {
+	width: 100%;
+	height: 126rpx;
+	background: #ffffff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	&_button {
+		width: 690rpx;
+		height: 86rpx;
+		background: #e93323;
+		border-radius: 43px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 32rpx;
+		color: #ffffff;
+	}
+}
+
+
+
+.width100 {
+	width: 100%;
+}
+.mt30 {
+	margin-top: 30rpx;
+}
+
+
+
+
+
+
