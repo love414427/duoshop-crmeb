@@ -1,0 +1,658 @@
+<template>
+  <div class="page-account">
+    <div class="container" :class="[ fullWidth > 768 ? 'containerSamll':'containerBig']">
+      <template v-if="fullWidth>768">
+        <swiper :options="swiperOption" class="swiperPross">
+          <swiper-slide v-for="(item,index) in swiperList" :key="index" class="swiperPic">
+            <img :src="item.pic" />
+          </swiper-slide>
+          <div slot="pagination" class="swiper-pagination" />
+        </swiper>
+      </template>
+      <div class="index_from page-account-container">
+        <div class="labelPic">
+          <img src="../../assets/images/laber.png" />
+        </div>
+        <div class="page-account-top">
+          <div class="page-account-top-logo">
+            <img :src="loginLogo" alt="logo" />
+          </div>
+        </div>
+        <el-form
+          ref="loginForm"
+          :model="loginForm"
+          :rules="loginRules"
+          class="login-form"
+          autocomplete="on"
+          label-position="left"
+          @keyup.enter="handleLogin"
+        >
+          <el-form-item prop="account">
+            <el-input
+              ref="account"
+              v-model="loginForm.account"
+              prefix-icon="el-icon-user"
+              placeholder="用户名"
+              name="username"
+              type="text"
+              tabindex="1"
+              autocomplete="on"
+            />
+          </el-form-item>
+
+          <el-form-item prop="password">
+            <el-input
+              :key="passwordType"
+              ref="password"
+              v-model="loginForm.password"
+              prefix-icon="el-icon-lock"
+              :type="passwordType"
+              placeholder="密码"
+              name="password"
+              tabindex="2"
+              auto-complete="on"
+            />
+            <span class="show-pwd" @click="showPwd">
+              <svg-icon :icon-class="passwordType === 'password' ? 'eye' : 'eye-open'" />
+            </span>
+          </el-form-item>
+
+          <!-- <el-form-item prop="code" class="captcha">
+            <div class="captcha">
+              <el-input
+                ref="username"
+                v-model="loginForm.code"
+                style="width: 168px;"
+                prefix-icon="el-icon-message"
+                placeholder="验证码"
+                name="username"
+                type="text"
+                tabindex="3"
+                autocomplete="on"
+              />
+              <div class="imgs" @click="getCaptcha()">
+                <img :src="captchatImg" />
+              </div>
+            </div>
+          </el-form-item> -->
+          <el-button
+            :loading="loading"
+            type="primary"
+            style="width:100%;margin-top:10px;"
+            @click.native.prevent="handleLogin"
+            v-debounce
+          >登录</el-button>
+        </el-form>
+      </div>
+    </div>
+    <div class="record_number">
+      <template v-if="copyright.status == -1">
+        <span class="cell">Copyright {{ copyright.year }}</span>
+        <a class="cell" :href="`http://${copyright.url}`" target="_blank">{{ copyright.version }}</a>
+      </template>
+      <template v-else>{{ copyright.Copyright }}</template>
+    </div>
+    <Verify @success="success" captchaType="blockPuzzle" :imgSize="{ width: '330px', height: '155px' }" ref="verify"></Verify>
+  </div>
+</template>
+
+<script>
+// +----------------------------------------------------------------------
+// | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016~2021 https://www.crmeb.com All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed CRMEB并不是自由软件，未经许可不能去掉CRMEB相关版权
+// +----------------------------------------------------------------------
+// | Author: CRMEB Team <admin@crmeb.com>
+// +----------------------------------------------------------------------
+import { captchaApi, loginConfigApi, getVersion } from "@/api/user";
+import { ajCaptchaStatus } from "@/api/system";
+import notice from "@/libs/notice";
+import "@/assets/js/canvas-nest.min";
+import Cookies from "js-cookie";
+import Verify from '@/components/verifition/Verify'
+export default {
+  name: "Login",
+  components: {Verify},
+  data() {
+    const validateUsername = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error("请输入用户名"));
+      } else {
+        callback();
+      }
+    };
+    const validatePassword = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error("请输入密码"));
+      } else {
+        if (value.length < 6) {
+          callback(new Error("请输入不少于6位数的密码"));
+        } else {
+          callback();
+        }
+      }
+    };
+    return {
+      fullWidth: document.body.clientWidth,
+      swiperOption: {
+        pagination: {
+          el: ".pagination"
+        },
+        autoplay: {
+          enabled: true,
+          disableOnInteraction: false,
+          delay: 3000
+        }
+      },
+      loginLogo: "",
+      beian_sn: "",
+      swiperList: [],
+      captchatImg: "",
+      loginForm: {
+        account: "",
+        password: "",
+        key: "",
+        code: ""
+      },
+      loginRules: {
+        account: [
+          { required: true, trigger: "blur", validator: validateUsername }
+        ],
+        password: [
+          { required: true, trigger: "blur", validator: validatePassword }
+        ],
+        code: [
+          { required: true, message: "请输入正确的验证码", trigger: "blur" }
+        ]
+      },
+      passwordType: "password",
+      capsTooltip: false,
+      loading: false,
+      showDialog: false,
+      redirect: undefined,
+      otherQuery: {},
+      copyright: ''
+    };
+  },
+  watch: {
+    fullWidth(val) {
+      // 为了避免频繁触发resize函数导致页面卡顿，使用定时器
+      if (!this.timer) {
+        // 一旦监听到的screenWidth值改变，就将其重新赋给data里的screenWidth
+        this.screenWidth = val;
+        this.timer = true;
+        const that = this;
+        setTimeout(function() {
+          // 打印screenWidth变化的值
+          that.timer = false;
+        }, 400);
+      }
+    },
+    $route: {
+      handler: function(route) {
+        const query = route.query;
+        if (query) {
+          this.redirect = query.redirect;
+          this.otherQuery = this.getOtherQuery(query);
+        }
+      },
+      immediate: true
+    }
+  },
+  created() {
+    const _this = this;
+    document.onkeydown = function(e) {
+      if (_this.$route.path.indexOf("login") !== -1) {
+        const key = window.event.keyCode;
+        if (key === 13) {
+          _this.handleLogin();
+        }
+      }
+    };
+    window.addEventListener("resize", this.handleResize);
+  },
+  mounted() {
+    console.log(this.title);
+    this.getInfo();
+    this.$nextTick(() => {
+      if (this.screenWidth < 768) {
+        document
+          .getElementsByTagName("canvas")[0]
+          .removeAttribute("class", "index_bg");
+      } else {
+        document.getElementsByTagName("canvas")[0].className = "index_bg";
+      }
+    });
+    this.getCaptcha();
+    this.getVersion();
+  },
+  beforeCreate() {
+    if (this.fullWidth < 768) {
+      document
+        .getElementsByTagName("canvas")[0]
+        .removeAttribute("class", "index_bg");
+    } else {
+      document.getElementsByTagName("canvas")[0].className = "index_bg";
+    }
+  },
+  beforeDestroy: function() {
+    window.removeEventListener("resize", this.handleResize);
+    document
+      .getElementsByTagName("canvas")[0]
+      .removeAttribute("class", "index_bg");
+  },
+  destroyed() {
+    // window.removeEventListener('storage', this.afterQRScan)
+  },
+  methods: {
+    getInfo() {
+      loginConfigApi()
+        .then(({ data }) => {
+          this.swiperList = data.login_banner;
+          this.loginLogo = data.login_logo;
+          this.beian_sn = data.beian_sn;
+          Cookies.set("MerInfo", JSON.stringify(data));
+          console.log(Cookies.get("MerInfo"));
+        })
+        .catch(({ message }) => {
+          this.$message.error(message);
+        });
+    },
+     getVerify() {
+      let that = this;
+      if (!that.loginForm.account) return that.$message.error('请填写账号码');
+      if (!that.loginForm.password) return that.$message.error('请填写密码');
+      this.$refs.verify.show();
+    },
+    getCaptcha() {
+      captchaApi()
+        .then(({ data }) => {
+          this.captchatImg = data.captcha;
+          this.loginForm.key = data.key;
+         
+        })
+        .catch(({ message }) => {
+          this.$message.error(message);
+        });
+    },
+    checkCapslock(e) {
+      const { key } = e;
+      this.capsTooltip = key && key.length === 1 && key >= "A" && key <= "Z";
+    },
+    showPwd() {
+      if (this.passwordType === "password") {
+        this.passwordType = "";
+      } else {
+        this.passwordType = "password";
+      }
+      this.$nextTick(() => {
+        this.$refs.password.focus();
+      });
+    },
+    handleLogin() {
+      this.loginForm.captchaVerification = "";
+      this.$refs["loginForm"].validate(valid => {
+        if (valid) {
+          this.loading = true;
+          ajCaptchaStatus({account: this.loginForm.account})
+            .then((res) => {
+              if(res.data.status){
+                this.getVerify();
+              }else{
+                this.loginIn();
+              }
+            })
+            .catch((res) => {
+              this.$message.error(res.message)
+            })
+        } else {
+          return false;
+        }
+      });
+    },
+    loginIn(){
+      this.$store
+        .dispatch("user/login", this.loginForm)
+        .then(res => {
+          console.log(res);
+          // this.$router.push({
+          //   path: this.redirect || "/",
+          //   query: this.otherQuery
+          // });
+          this.$router.push({
+            path: "/",
+          });
+          this.loading = false;
+          this.$root.closeNotice();
+          this.$root.notice = notice(res.token);
+        })
+        .catch(error => {
+          this.loginForm.code = "";
+          this.$message.error(error.message);
+          this.loading = false;
+        });
+    },
+    getOtherQuery(query) {
+      return Object.keys(query).reduce((acc, cur) => {
+        if (cur !== "redirect") {
+          acc[cur] = query[cur];
+        }
+        return acc;
+      }, {});
+    },
+    handleResize(event) {
+      this.fullWidth = document.body.clientWidth;
+      if (this.fullWidth < 768) {
+        document
+          .getElementsByTagName("canvas")[0]
+          .removeAttribute("class", "index_bg");
+      } else {
+        document.getElementsByTagName("canvas")[0].className = "index_bg";
+      }
+    },
+    getVersion() {
+      getVersion().then(res => {
+          console.log(res);
+          this.copyright = res.data;
+      });
+    },
+    success(data) {
+      this.isShow = false;
+      this.loginForm.captchaType = "blockPuzzle"
+      this.loginForm.captchaVerification = data.captchaVerification
+      this.loginIn();
+    },
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+$screen-md: 768px;
+$font-size-base: 14px;
+$animation-time: 0.3s;
+$animation-time-quick: 0.15s;
+$transition-time: 0.2s;
+$ease-in-out: ease-in-out;
+$subsidiary-color: #808695;
+.page-account {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: auto;
+  .record_number{
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    left: 0;
+    margin: 0;
+    background: hsla(0,0%,100%,.8);
+    border-top: 1px solid #e7eaec;
+    overflow: hidden;
+    padding: 10px 20px;
+    height: 36px;
+    color: #515a6e;
+    font-size: 14px;
+    text-align: right;
+    z-index: 300;
+    .cell {
+        + .cell{
+            margin-left: 5px;
+        }
+    }
+  }
+  &-container {
+    flex: 1;
+    padding: 32px 0;
+    text-align: center;
+    width: 384px;
+    margin: 0 auto;
+
+    &-result {
+      width: 100%;
+    }
+  }
+
+  &-tabs {
+    .ivu-tabs-bar {
+      border-bottom: none;
+    }
+    .ivu-tabs-nav-scroll {
+      text-align: center;
+    }
+    .ivu-tabs-nav {
+      display: inline-block;
+      float: none;
+    }
+  }
+  &-top {
+    padding: 32px 0;
+    &-logo {
+      img {
+        max-height: 75px;
+      }
+    }
+    &-desc {
+      font-size: $font-size-base;
+      color: $subsidiary-color;
+    }
+  }
+
+  &-auto-login {
+    margin-bottom: 24px;
+    text-align: left;
+    a {
+      float: right;
+    }
+  }
+
+  &-other {
+    margin: 24px 0;
+    text-align: left;
+    span {
+      font-size: $font-size-base;
+    }
+    img {
+      width: 24px;
+      margin-left: 16px;
+      cursor: pointer;
+      vertical-align: middle;
+      opacity: 0.7;
+      transition: all $transition-time $ease-in-out;
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+
+  .ivu-poptip,
+  .ivu-poptip-rel {
+    display: block;
+  }
+
+  &-register {
+    float: right;
+    &-tip {
+      text-align: left;
+      /*&-low{*/
+      /*color: @error-color;*/
+      /*}*/
+      /*&-medium{*/
+      /*color: @warning-color;*/
+      /*}*/
+      /*&-strong{*/
+      /*color: @success-color;*/
+      /*}*/
+      &-title {
+        font-size: $font-size-base;
+      }
+      &-desc {
+        white-space: initial;
+        font-size: $font-size-base;
+        margin-top: 6px;
+      }
+    }
+  }
+
+  &-to-login {
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  &-header {
+    text-align: right;
+    position: fixed;
+    top: 16px;
+    right: 24px;
+  }
+}
+.labelPic {
+  position: absolute;
+  right: 0;
+}
+@media (min-width: $screen-md) {
+  .page-account {
+    background-image: url("../../assets/images/bg.jpg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+  }
+  .page-account-container {
+    padding: 32px 0 24px 0;
+    position: relative;
+  }
+}
+.page-account {
+  display: flex;
+}
+
+.page-account .code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-account .code .pictrue {
+  height: 40px;
+}
+
+.swiperPross {
+  border-radius: 6px 0px 0px 6px;
+  overflow: hidden;
+}
+
+.swiperPross,
+.swiperPic,
+.swiperPic img {
+  width: 510px;
+  height: 100%;
+}
+
+.swiperPic img {
+  width: 100%;
+  height: 100%;
+}
+
+.container {
+  height: 400px !important;
+  padding: 0 !important;
+  /*overflow: hidden;*/
+  border-radius: 6px;
+  z-index: 1;
+  display: flex;
+}
+
+.containerSamll {
+  width: 870px;
+  background: #fff !important;
+}
+
+.containerBig {
+  width: auto !important;
+  background: #f7f7f7 !important;
+}
+
+.index_from {
+  padding: 0 40px 32px 40px;
+  height: 400px;
+  box-sizing: border-box;
+}
+
+.page-account-top {
+  padding: 70px 0 35px!important;
+  box-sizing: border-box !important;
+  display: flex;
+  justify-content: center;
+}
+
+.page-account-container {
+  border-radius: 0px 6px 6px 0px;
+}
+
+.btn {
+  background: linear-gradient(
+    90deg,
+    rgba(25, 180, 241, 1) 0%,
+    rgba(14, 115, 232, 1) 100%
+  ) !important;
+}
+</style>
+
+<style lang="scss" scoped>
+.captcha {
+  display: flex;
+  align-items: flex-start;
+}
+$bg: #2d3a4b;
+$dark_gray: #889aa4;
+$light_gray: #eee;
+.imgs {
+  img {
+    height: 36px;
+  }
+}
+.login-form {
+  position: relative;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.tips {
+  font-size: 14px;
+  color: #fff;
+  margin-bottom: 10px;
+
+  span {
+    &:first-of-type {
+      margin-right: 16px;
+    }
+  }
+}
+.svg-container {
+  padding: 6px 5px 6px 15px;
+  color: $dark_gray;
+  vertical-align: middle;
+  width: 30px;
+  display: inline-block;
+}
+.show-pwd {
+  position: absolute;
+  right: 10px;
+  top: 7px;
+  font-size: 16px;
+  color: $dark_gray;
+  cursor: pointer;
+  user-select: none;
+  /deep/.svg-icon {
+    vertical-align: 0.3em;
+  }
+}
+.thirdparty-button {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+}
+</style>

@@ -190,7 +190,7 @@
 					<!-- 商铺信息 -->
 					<view class="store-wrapper" v-if="storeInfo.merchant && hide_mer_status !=1">
 						<view class="store-hd skeleton-rect">
-<!-- 							<view class="store-info">
+							<view class="store-info">
 								<view class="logo">
 									<image :src="storeInfo.merchant.mer_avatar" mode=""></image>
 								</view>
@@ -208,7 +208,7 @@
 								</view>
 								<navigator v-if="hide_mer_status != 1" :url="'/pages/store/home/index?id='+storeInfo.merchant.mer_id" class="link"
 								 hover-class="none">进店</navigator>
-							</view> -->
+							</view>
 							<view class="score-wrapper">
 								<view class="item">
 									商品描述<text>{{storeInfo.merchant.product_score}}</text>

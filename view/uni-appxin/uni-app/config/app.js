@@ -6,11 +6,11 @@ let openPlantGrass = '-openPlantGrass-'
 
 // 网络接口修改此字符 小程序域名要求https
 // let httpApi = 'http://192.168.31.108:8324' //测试
-let httpApi = 'https://orange-y10.vip' //生产
+let httpApi = 'https://dsh.k94.cn' //生产
 
 // 聊天接口修改此字符 小程序聊天要求wss 例如：wss://mer.crmeb.net
 // let wsApi = 'ws://192.168.3.20:8324'
-let wsApi = 'wss://orange-y10.vip'
+let wsApi = 'wss://dsh.k94.cn'
 
 module.exports = {
 	// 请求域名 格式： https://您的域名

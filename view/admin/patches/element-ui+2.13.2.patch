@@ -1,0 +1,69 @@
+diff --git a/node_modules/element-ui/lib/cascader-panel.js b/node_modules/element-ui/lib/cascader-panel.js
+index 0f3f827..aba337b 100644
+--- a/node_modules/element-ui/lib/cascader-panel.js
++++ b/node_modules/element-ui/lib/cascader-panel.js
+@@ -1050,7 +1050,7 @@ var store_Store = function () {
+   };
+ 
+   Store.prototype.getNodeByValue = function getNodeByValue(value) {
+-    if (value) {
++    if (value || value === 0) {
+       var nodes = this.getFlattedNodes(false, !this.config.lazy).filter(function (node) {
+         return Object(util_["valueEquals"])(node.path, value) || node.value === value;
+       });
+diff --git a/node_modules/element-ui/lib/cascader.js b/node_modules/element-ui/lib/cascader.js
+index ee4bc3d..d39b5a4 100644
+--- a/node_modules/element-ui/lib/cascader.js
++++ b/node_modules/element-ui/lib/cascader.js
+@@ -911,7 +911,7 @@ var InputSizeMap = {
+   data: function data() {
+     return {
+       dropDownVisible: false,
+-      checkedValue: this.value || null,
++      checkedValue: this.value,
+       inputHover: false,
+       inputValue: null,
+       presentText: null,
+@@ -1039,7 +1039,7 @@ var InputSizeMap = {
+       this.inputInitialHeight = input.$el.offsetHeight || InputSizeMap[this.realSize] || 40;
+     }
+ 
+-    if (!Object(util_["isEmpty"])(this.value)) {
++    if (this.value === 0 || !Object(util_["isEmpty"])(this.value)) {
+       this.computePresentContent();
+     }
+ 
+@@ -1189,7 +1189,7 @@ var InputSizeMap = {
+       var checkedValue = this.checkedValue,
+           config = this.config;
+ 
+-      if (!Object(util_["isEmpty"])(checkedValue)) {
++      if (checkedValue === 0 || !Object(util_["isEmpty"])(checkedValue)) {
+         var node = this.panel.getNodeByValue(checkedValue);
+         if (node && (config.checkStrictly || node.isLeaf)) {
+           this.presentText = node.getText(this.showAllLevels, this.separator);
+diff --git a/node_modules/element-ui/lib/utils/util.js b/node_modules/element-ui/lib/utils/util.js
+index 1ced2ab..bfa9001 100644
+--- a/node_modules/element-ui/lib/utils/util.js
++++ b/node_modules/element-ui/lib/utils/util.js
+@@ -215,7 +215,7 @@ var isEmpty = exports.isEmpty = function isEmpty(val) {
+ 
+   if (typeof val === 'boolean') return false;
+ 
+-  if (typeof val === 'number') return !val;
++  if (typeof val === 'number') return false;
+ 
+   if (val instanceof Error) return val.message === '';
+ 
+diff --git a/node_modules/element-ui/packages/.DS_Store b/node_modules/element-ui/packages/.DS_Store
+deleted file mode 100644
+index 1c1f7f4..0000000
+Binary files a/node_modules/element-ui/packages/.DS_Store and /dev/null differ
+diff --git a/node_modules/element-ui/packages/theme-chalk/src/.DS_Store b/node_modules/element-ui/packages/theme-chalk/src/.DS_Store
+deleted file mode 100644
+index 94b4cf9..0000000
+Binary files a/node_modules/element-ui/packages/theme-chalk/src/.DS_Store and /dev/null differ
+diff --git a/node_modules/element-ui/packages/theme-chalk/src/fonts/.DS_Store b/node_modules/element-ui/packages/theme-chalk/src/fonts/.DS_Store
+deleted file mode 100644
+index 5008ddf..0000000
+Binary files a/node_modules/element-ui/packages/theme-chalk/src/fonts/.DS_Store and /dev/null differ
