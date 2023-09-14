@@ -104,9 +104,11 @@ class UserRelation extends BaseController
         $params = $this->request->params(['type_id','type']);
         if (!$this->repository->getUserRelation($params,$this->request->uid()))
             return app('json')->fail('信息不存在');
-        $spu = $this->repository->getSpu($params);
-        $params['type_id'] = $spu->spu_id;
-        $this->repository->batchDestory([$params['type_id']],$this->request->uid());
+        if(in_array($params['type'],[0,1,2,3,4])) {
+            $spu = $this->repository->getSpu($params);
+            $params['type_id'] = $spu->spu_id;
+        }
+        $this->repository->batchDestory([$params['type_id']],$this->request->uid(),$params['type']);
         return app('json')->success('已取消关注');
     }
 

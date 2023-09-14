@@ -98,10 +98,12 @@ class UserAddressRepository extends BaseRepository
      * @return array
      * @author Qinii
      */
-    public function getList($uid)
+    public function getList($uid,$page, $limit)
     {
-        $list = $this->dao->getAll($uid)->order('is_default desc')->select();
-        return compact('list');
+        $query = $this->dao->getAll($uid);
+        $count = $query->count();
+        $list = $query->page($page, $limit)->order('is_default desc')->select();
+        return compact('count','list');
     }
 
     /**

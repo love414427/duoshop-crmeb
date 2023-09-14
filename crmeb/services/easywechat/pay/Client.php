@@ -27,7 +27,7 @@ class Client extends BaseClient
         $request = request();
         $success = $request->post('event_type') === 'TRANSACTION.SUCCESS';
         $data = $this->decrypt($request->post('resource', []));
-
+        Log::info('支付回调参数v3：'.var_export($request->post(),1));
         $handleResult = call_user_func_array($callback, [json_decode($data, true), $success]);
         if (is_bool($handleResult) && $handleResult) {
             $response = [

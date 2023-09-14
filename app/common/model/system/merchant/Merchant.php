@@ -20,6 +20,7 @@ use app\common\model\store\coupon\StoreCouponProduct;
 use app\common\model\store\coupon\StoreCouponUser;
 use app\common\model\store\product\Product;
 use app\common\model\store\product\Spu;
+use app\common\model\store\service\StoreService;
 use app\common\model\system\config\SystemConfigValue;
 use app\common\model\system\financial\Financial;
 use app\common\model\system\serve\ServeOrder;
@@ -83,7 +84,7 @@ class Merchant extends BaseModel
         $list = Product::where('mer_id', $this['mer_id'])
             ->where((new ProductDao())->productShow())
             ->field('mer_id,product_id,store_name,image,price,is_show,status,is_gift_bag,is_good,cate_id')
-            ->order('sort DESC, create_time DESC')
+            ->order('is_good DESC, sort DESC, create_time DESC')
             ->limit(3)
             ->select()->append(['show_svip_info']);
         if ($list) {
@@ -149,7 +150,17 @@ class Merchant extends BaseModel
 
     public function getServicesTypeAttr()
     {
-        return merchantConfig($this->mer_id,'services_type');
+        //0 支持在线聊天 1 支持电话 -1 暂无客服
+        $services_type = merchantConfig($this->mer_id,'services_type');
+        if ($services_type) {
+            if (!$this->service_phone) $services_type = -1;
+        } else {
+            $services_type = 0;
+            $where = ['mer_id' => $this->mer_id, 'is_open' => 1,'status' => 1];
+            $service = StoreService::where($where)->count();
+            if (!$service) $services_type = -1;
+        }
+        return $services_type;
     }
 
     public function marginOrder()
@@ -180,10 +191,14 @@ class Merchant extends BaseModel
     {
         return $this->merchantType()->bind(['type_name']);
     }
+    public function categoryName()
+    {
+        return $this->merchantCategory()->bind(['category_name']);
+    }
 
     public function getMerCommissionRateAttr()
     {
-        return $this->commission_rate > 0 ? $this->commission_rate : bcmul($this->merchantCategory->commission_rate, 100, 4);
+        return $this->commission_swtich ? $this->commission_rate : $this->merchantCategory->commission_rate;
     }
 
     public function getOpenReceiptAttr()

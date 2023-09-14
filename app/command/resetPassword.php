@@ -38,7 +38,7 @@ class resetPassword extends Command
         $this->setName('reset:password')
             ->addArgument('root', Argument::OPTIONAL, 'root : admin')
             ->addOption('pwd', null, Option::VALUE_REQUIRED, 'pwd : 123456')
-            ->setDescription('php think reset:password admin --pwd 123');
+            ->setDescription('php think reset:password admin --pwd 123456');
     }
 
     /**

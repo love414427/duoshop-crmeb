@@ -515,7 +515,9 @@ class StoreCouponRepository extends BaseRepository
                 'type' => 'div',
                 'style' => ['color' => '#999999'],
                 'domProps' => [
-                    'innerHTML' =>'会员优惠券创建成功后会自动发送给创建时间之后的新付费会员；之后每月1日零点自动发送给所有付费会员；在创建优惠券之前已成为付费会员的用户可在会员中心手动领取优惠券',
+                    'innerHTML' =>'会员优惠券创建成功后会自动发送给创建时间之后的新付费会员；
+                    之后每月1日零点自动发送给所有付费会员；在创建优惠券之前已成为付费会员的用户可在会员中心手动领取优惠券
+                    未使用优惠券，每月初会清空。',
                 ]
             ]),
             Elm::radio('is_limited', '是否限量', 0)->options([['label' => '限量', 'value' => 1], ['label' => '不限量', 'value' => 0]])

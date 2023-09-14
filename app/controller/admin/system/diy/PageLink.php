@@ -43,7 +43,7 @@ class PageLink extends BaseController
     public function lst()
     {
         [$page, $limit] = $this->getPage();
-        $where = $this->request->params([['status',1]]);
+        //$where = $this->request->params([['status',1]]);
         $where['is_mer'] = $this->request->param('type',0);
         return app('json')->success($this->repository->getList($where, $page, $limit));
     }
@@ -106,6 +106,7 @@ class PageLink extends BaseController
         if (!$category) {
             return app('json')->fail('页面分类不存在');
         }
+        $type = $this->request->param('type',0);
         [$page, $limit] = $this->getPage();
         switch ($category['type']) {
             case 'special':
@@ -131,8 +132,11 @@ class PageLink extends BaseController
                 $storeCategoryServices = app()->make(StoreCategoryRepository::class);
                 $data = $storeCategoryServices->getApiFormatList($this->request->merId(),1,1);
                 break;
+            case 'micro':
+                $data = app()->make(DiyRepository::class)->getList(['is_diy' => 0],$page, $limit);
+                break;
             default:
-                $data = $this->repository->getLinkList($id,$this->request->merId());
+                $data = $this->repository->getLinkList($id, $type == 1 ? 1 : $this->request->merId());
                 break;
         }
         return app('json')->success($data);
@@ -150,6 +154,13 @@ class PageLink extends BaseController
             return app('json')->fail('数据不存在');
         $this->repository->delete($id);
         return app('json')->success('删除成功!');
+    }
+
+    public function switchStatus($id)
+    {
+        $status = $this->request->param('status') == 1 ? 1: 0;
+        $this->repository->update($id,['status' => $status]);
+        return app('json')->success('修改成功');
     }
 
 }

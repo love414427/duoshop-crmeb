@@ -251,7 +251,7 @@ class StoreCart extends BaseModel
         switch ($this->product_type)
         {
             case 1: //秒杀
-                if(!$make->getDayPayCount($this->uid,$this->product_id) || !$make->getPayCount($this->uid,$this->product_id))
+                if(!$make->getDayPayCount($this->uid,$this->product_id,$this->cart_num) || !$make->getPayCount($this->uid,$this->product_id,$this->cart_num))
                     return false;
                 break;
             case 2: //预售
@@ -264,7 +264,6 @@ class StoreCart extends BaseModel
                 $pay_count = $make->getTattendCount($tattend,$this->uid)->sum('total_num');
                 if($pay_count < $count) return false;
                 if (($count - $pay_count)  < $this->cart_num) return false;
-
                 break;
 
             case 3: //助力
@@ -303,7 +302,6 @@ class StoreCart extends BaseModel
                 }
                 break;
         }
-
         return true;
     }
 

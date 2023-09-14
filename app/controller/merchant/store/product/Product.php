@@ -71,12 +71,48 @@ class Product extends BaseController
      * @Date: 2020/5/18
      * @param validate $validate
      * @return mixed
+     * @attr: 规格参数[];
+     * @attrValue: SkU数据[];
+     * @brand_id?: number 品牌的ID;
+     * @cate_id: number 平台商品分类，平台的商品分类ID，单选 ;
+     * @content: string  详情;
+     * @delivery_free: number 是否包邮，0.否，1.是;
+     * @delivery_way: string[] 商品支持的配送类型，1.仅到店自提2快递计价配送;
+     * @extension_type?: string 佣金比例 0.系统，1.自定义，佣金比例 ：0.系统，即根据商户统一设置的比例计算； 1.自定义，手动在每个sku价格后面填写佣金金额;
+     * @image: string 封面图，列表展示图;
+     * @keyword: string 商品关键字，在分享海报或者微信分享好友等，会使用到;
+     * @mer_cate_id?: string[] 商户商品分类，商户商品分类ID，多选;
+     * @once_max_count?: number 订单单次购买数量最大限制，例如 5，单次购买不得超过5件/ 或者此商品每个商户只能购买5件，根据 pay_limit 类型决定;
+     * @once_min_count?: number 单次购买最低限购，例如 5，则是5件起购;
+     * @pay_limit?: number 是否限购，购买总数限制 0:不限购，1单次限购 2 长期限购;
+     * @refund_switch?: number 商品是否支持退款，1.支持 0.不支持;
+     * @slider_image: string[] 轮播图，详情页展示;
+     * @spec_type: number 规格类型，0单规格 ，1 多规格;
+     * @store_info: string 商品简介;
+     * @store_name: string 商品名称;
+     * @svip_price_type?: number 会员价类型，0不参加，1默认比例，2自定义;
+     * @unit_name: string 单位，计量单位，例如：个、kg等;
+     * @video_link?: string 视频链接地址;
+     * @attr.value: string 规格名，例如尺码;
+     * @attr.detail: string[] 规格值，["S (适合36-37)", "M (适合38-39)", "L (适合40-41)"];
+     * @attrValue.cost: number 成本价;
+     * @attrValue.detail: { [key: string]: any } 当前SKU信息，当前sku组合的信息，例如："detail": {"颜色": "粉红色","尺码": "S (适合36-37)"}，则表示当前的规格是颜色为粉红色，尺码为S的组合;
+     * @attrValue.extension_one?: number 一级佣金，如果 extension_type 值为1 ，此项必填，但金额不得超过单价，即：price参数;
+     * @attrValue.extension_two?: number 二级佣金，如果 extension_type 值为1 ，此项必填，但金额不得超过单价，即：price参数;
+     * @attrValue.image: string sku封面图，选中当前规格会在移动端详情中显示的图片;
+     * @attrValue.ot_price: number 原价;
+     * @attrValue.price: number 售价;
+     * @attrValue.stock: number 库存;
+     * @attrValue.svip_price: string会员价，如果 svip_price_type 值为 1 此项必填；当svip_price_type值为1此项值为0时；即：付费会员免费获取;
+     * @attrValue.volume: number 体积;
+     * @attrValue.weight: number 重量;
      */
     public function create()
     {
         $params = $this->request->params($this->repository::CREATE_PARAMS);
         $data = $this->repository->checkParams($params,$this->request->merId());
         $data['mer_id'] = $this->request->merId();
+        $data['admin_id'] = $this->request->merAdminId();
         if ($data['is_gift_bag'] && !$this->repository->checkMerchantBagNumber($data['mer_id']))
             return app('json')->fail('礼包数量超过数量限制');
         $data['status'] = $this->request->merchant()->is_audit ? 0 : 1;
@@ -133,8 +169,8 @@ class Product extends BaseController
     {
         if(!$this->repository->merDeleteExists($this->request->merId(),$id))
             return app('json')->fail('只能删除回收站的商品');
-        if(app()->make(StoreCartRepository::class)->getProductById($id))
-            return app('json')->fail('商品有被加入购物车不可删除');
+//        if(app()->make(StoreCartRepository::class)->getProductById($id))
+//            return app('json')->fail('商品有被加入购物车不可删除');
         $this->repository->destory($id);
         return app('json')->success('删除成功');
     }
@@ -254,8 +290,10 @@ class Product extends BaseController
             'spec_type'
         ];
         $data = $this->request->params($params);
-        $count = app()->make(StoreCategoryRepository::class)->getWhereCount(['store_category_id' => $data['mer_cate_id'],'is_show' => 1,'mer_id' => $this->request->merId()]);
-        if (!$count) throw new ValidateException('商户分类不存在或不可用');
+        if(!empty($data['mer_cate_id'])){
+            $count = app()->make(StoreCategoryRepository::class)->getWhereCount(['store_category_id' => $data['mer_cate_id'],'is_show' => 1,'mer_id' => $this->request->merId()]);
+            if (!$count) throw new ValidateException('商户分类不存在或不可用');
+        }
         $data['status'] = 1;
         $this->repository->freeTrial($id, $data,$this->request->merId());
         return app('json')->success('编辑成功');

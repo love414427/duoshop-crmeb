@@ -19,12 +19,14 @@ use app\common\dao\store\product\ProductReplyDao;
 use app\common\repositories\BaseRepository;
 use app\common\repositories\store\order\StoreOrderProductRepository;
 use app\common\repositories\store\order\StoreOrderStatusRepository;
+use app\common\repositories\system\merchant\MerchantRepository;
 use app\common\repositories\user\UserBrokerageRepository;
 use crmeb\jobs\UpdateProductReplyJob;
 use crmeb\services\SwooleTaskService;
 use FormBuilder\Exception\FormBuilderException;
 use FormBuilder\Factory\Elm;
 use FormBuilder\Form;
+use think\facade\Cache;
 use function Symfony\Component\String\b;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
@@ -162,14 +164,14 @@ class ProductReplyRepository extends BaseRepository
         if ($productId) {
             $rule[] = Elm::hidden('product_id', [['id' => $productId]]);
         } else {
-            $rule[] = Elm::frameImage('product_id', '商品', '/' . config('admin.admin_prefix') . '/setting/storeProduct?field=product_id')->width('60%')->height('536px')->props(['srcKey' => 'src'])->modal(['modal' => false]);
+            $rule[] = Elm::frameImage('product_id', '商品', '/' . config('admin.admin_prefix') . '/setting/storeProduct?field=product_id')->width('1000px')->height('600px')->props(['srcKey' => 'src'])->modal(['modal' => false]);
         }
         $rule[] = Elm::input('nickname', '用户昵称')->required();
         $rule[] = Elm::input('comment', '评价文字')->type('textarea');
         $rule[] = Elm::rate('product_score', '商品分数', 5)->col(8)->max(5);
         $rule[] = Elm::rate('service_score', '服务分数', 5)->col(8)->max(5);
         $rule[] = Elm::rate('postage_score', '物流分数', 5)->col(8)->max(5);
-        $rule[] = Elm::frameImage('avatar', '用户头像', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=avatar&type=1')->width('896px')->height('480px')->props(['footer' => false])->modal(['modal' => false]);
+        $rule[] = Elm::frameImage('avatar', '用户头像', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=avatar&type=1')->width('1000px')->height('600px')->props(['footer' => false])->modal(['modal' => false]);
         $rule[] = Elm::frameImages('pics', '评价图片', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=pics&type=2')->maxLength(6)->width('896px')->height('480px')->spin(0)->modal(['modal' => false])->props(['footer' => false]);
         return Elm::createForm(Route::buildUrl('systemProductReplyCreate')->build(), $rule)->setTitle('添加虚拟评价');
     }
@@ -219,13 +221,19 @@ class ProductReplyRepository extends BaseRepository
      */
     public function getReplyRate(int $productId)
     {
+        $cache_unique = md5('reply_rate_' . json_encode([$productId]));
+        $res = Cache::get($cache_unique);
+        if ($res) return json_decode($res,true);
 
         $res = $this->selectWhere(['product_id' => $productId,'is_del' =>0]);
         $best = $res->where('rate', '>=', 4)->where('rate', '<=', 5)->count();
         $count = $res->count();
         $rate = '';
         if ($best && $count) $rate = bcdiv($best, $count, 2) * 100 . '%';
-        return compact('best', 'rate', 'count');
+
+        $res = compact('best', 'rate', 'count');
+        Cache::set($cache_unique, json_encode($res), 1500);
+        return $res;
     }
 
     public function reply(array $data)

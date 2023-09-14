@@ -21,7 +21,9 @@ use app\common\repositories\system\groupData\GroupDataRepository;
 use app\common\repositories\system\groupData\GroupRepository;
 use crmeb\jobs\SyncProductTopJob;
 use crmeb\services\DownloadImageService;
+use crmeb\services\RedisCacheService;
 use think\exception\ValidateException;
+use think\facade\Cache;
 use think\facade\Db;
 use think\facade\Queue;
 
@@ -119,6 +121,7 @@ class ConfigValueRepository extends BaseRepository
                 break;
             case 'margin_remind_day':
                 if ($value && floor($value) != $value) throw new ValidateException('时间不可为小数');
+                break;
             case 'svip_switch_status':
                 if ($value == 1) {
                     $groupDataRepository = app()->make(GroupDataRepository::class);
@@ -151,6 +154,59 @@ class ConfigValueRepository extends BaseRepository
                     ]);
             }
         });
+        $this->syncConfig();
+    }
+
+    public function syncConfig()
+    {
+        $list = $this->query([])->column('value,config_key,mer_id');
+        $make = app()->make(RedisCacheService::class);
+        $oldKeys = $make->keys('saga_sys_config_*') ?: [];
+        $oldKeys = array_combine($oldKeys, $oldKeys);
+        $mset = [];
+        foreach ($list as $item) {
+            $key = 'saga_sys_config_' . $item['mer_id'] . '_' . $item['config_key'];
+            $mset[$key] = $item['value'];
+            unset($oldKeys[$key]);
+        }
+        $mset['saga_sys_configFlag'] = time();
+        $make->mset($mset);
+        if (count($oldKeys)) {
+            $make->handler()->del(...array_values($oldKeys));
+        }
+        Cache::delete('get_api_config');
+    }
+
+    public function getConfig(int $merId, $name)
+    {
+        $make = app()->make(RedisCacheService::class);
+        if (is_array($name)) {
+            if (!count($name)) {
+                return [];
+            }
+            $names = $name;
+        } else {
+            $names = [$name];
+        }
+        $keys = [];
+        foreach ($names as $item) {
+            $keys[] = 'saga_sys_config_' . $merId . '_' . $item;
+        }
+        $values = $make->mGet($keys) ?: [];
+        if (!is_array($name)) {
+            return ($values[0] ?? '') ? json_decode($values[0]) : '';
+        }
+        $data = [];
+        if (!count($values)) {
+            foreach ($names as $v) {
+                $data[$v] = '';
+            }
+            return $data;
+        }
+        foreach ($values as $i => $value) {
+            $data[$names[$i]] = $value ? json_decode($value) : '';
+        }
+        return $data;
     }
 
 }

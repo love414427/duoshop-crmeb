@@ -54,6 +54,8 @@ class Order extends BaseController
         [$page, $limit] = $this->getPage();
         $where = $this->request->params(['status', 'date', 'order_sn', 'username', 'order_type', 'keywords', 'order_id', 'activity_type', 'group_order_sn', 'store_name','filter_delivery','filter_product']);
         $where['mer_id'] = $this->request->merId();
+        $pay_type = $this->request->param('pay_type','');
+        if ($pay_type != '') $where['pay_type'] = $this->repository::PAY_TYPE_FILTEER[$pay_type];
         return app('json')->success($this->repository->merchantGetList($where, $page, $limit));
     }
 

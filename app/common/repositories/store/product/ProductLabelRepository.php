@@ -131,4 +131,9 @@ class ProductLabelRepository extends BaseRepository
         return true;
     }
 
+    public function getLabelName($label_id)
+    {
+        return $this->dao->query([$this->dao->getPk() => $label_id])->value('label_name') ?? '';
+    }
+
 }

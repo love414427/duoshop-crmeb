@@ -86,5 +86,4 @@ class ProductCopy extends BaseController
         $res = $this->repository->getProduct($url,$this->request->merId());
         return app('json')->success($res);
     }
-
 }

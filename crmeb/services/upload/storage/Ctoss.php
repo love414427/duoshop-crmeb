@@ -69,6 +69,8 @@ class Ctoss extends BaseUpload
 
     protected $image_suffix;
 
+    protected $upload_max_size;
+
     /**
      * 初始化
      * @param array $config
@@ -86,6 +88,7 @@ class Ctoss extends BaseUpload
         $this->thumb_status = $config['thumb_status'];
         $this->thumb_rate = $config['thumb_rate'];
         $this->image_suffix = $config['image_suffix'];
+        $this->upload_max_size = $config['upload_max_size'];
     }
 
     /**
@@ -114,6 +117,7 @@ class Ctoss extends BaseUpload
     public function move(string $file = 'file', $thubm = true)
     {
         $fileHandle = app()->request->file($file);
+        if ($this->upload_max_size && $fileHandle->getSize() < $this->upload_max_size) $this->thumb_status = false;
         if (!$fileHandle) {
             return $this->setError('Upload file does not exist');
         }

@@ -39,16 +39,16 @@ class Diy extends BaseController
      */
     public function lst()
     {
-        $where = $this->request->params([
-            ['status', ''],
-            ['type', ''],
-            ['name', ''],
-            ['version', ''],
-            ['is_diy',1]
-        ]);
-        $where['mer_id'] = $this->request->merId();
+        $type = $this->request->param('type',1);
         [$page, $limit] = $this->getPage();
-        $data = $this->repository->getSysList($where,$page, $limit);
+        $where['is_diy'] = $this->request->param('is_diy',1);
+        if ($type == 2) {
+            $data = $this->repository->getMerDefaultList($where,$page, $limit);
+        } else {
+            $where['type'] = 1;
+            $where['mer_id'] = $this->request->merId();
+            $data = $this->repository->getSysList($where,$page, $limit);
+        }
         return app('json')->success($data);
     }
 
@@ -59,6 +59,7 @@ class Diy extends BaseController
      */
     public function saveData(int $id = 0)
     {
+        // 0.全部店铺使用、1. 指定店铺使用、2. 指定商户分类使用、3. 指定店铺类型使用、4. 指定商户类别使用
         $data = $this->request->params([
             ['name', ''],
             ['title', ''],
@@ -72,17 +73,20 @@ class Diy extends BaseController
             ['color_picker', ''],
             ['bg_pic', ''],
             ['is_diy',1],
+            ['is_default',0]
         ]);
+        if ($id) unset($data['is_default']);
         $data['mer_id'] = $this->request->merId();
         $value = is_string($data['value']) ? json_decode($data['value'], true) : $data['value'];
         $infoDiy = $id ? $this->repository->getWhere(['id' => $id, 'mer_id' => $data['mer_id']]) : [];
-        if ($infoDiy && $infoDiy['is_default'])
-            return app('json')->fail('默认模板不能修改');
         if ($infoDiy) {
             foreach ($value as $k => $item) {
                 if ($item['name'] === 'goodList') {
                     if (isset($item['selectConfig']['list'])) {
                         unset($item['selectConfig']['list']);
+                    }
+                    if (isset($item['productList']['list'])) {
+                        unset($item['productList']['list']);
                     }
                     if (isset($item['goodsList']['list']) && is_array($item['goodsList']['list'])) {
                         $item['goodsList']['ids'] = array_column($item['goodsList']['list'], 'product_id');
@@ -150,11 +154,6 @@ class Diy extends BaseController
         return app('json')->success('删除成功');
     }
 
-    public function getDiyInfo()
-    {
-        return app('json')->success($this->repository->getDiyInfo(0,$this->request->merId()));
-    }
-
     /**
      * 使用模板
      * @param $id
@@ -174,12 +173,10 @@ class Diy extends BaseController
     public function getInfo(int $id)
     {
         if (!$id) throw new ValidateException('参数错误');
-        $info = $this->repository->getWhere([$this->repository->getPk() => $id, 'mer_id' => $this->request->merId()]);
-        if ($info) {
-            $info = $info->toArray();
-        } else {
-            throw new ValidateException('模板不存在');
-        }
+        $info = $this->repository->getWhere([$this->repository->getPk() => $id]);
+        if (!$info || (!$info['is_default'] && $info['mer_id']))
+            return app('json')->fail('模板不存在');
+        $info = $info->toArray();
         $info['value'] = json_decode($info['value'], true);
         if ($info['value']) {
             $articleServices = app()->make(ArticleRepository::class);
@@ -312,6 +309,19 @@ class Diy extends BaseController
     public function copy($id)
     {
         $data = $this->repository->copy($id,$this->request->merId());
+        return app('json')->success('复制模板成功',$data);
+    }
+
+    public function getScope($id)
+    {
+        $data = $this->repository->getScope($id);
         return app('json')->success($data);
+    }
+
+    public function setScope($id)
+    {
+        $data = $this->request->params(['scope_type','scope_value']);
+        $this->repository->setScope($id,$data);
+        return app('json')->success('编辑成功');
     }
 }

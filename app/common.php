@@ -463,31 +463,7 @@ if (!function_exists('merchantConfig')) {
      */
     function merchantConfig(int $merId, $key)
     {
-        $request = request();
-        $make = app()->make(ConfigValueRepository::class);
-        if (is_array($key)) {
-            $_key = [];
-            $cacheData = [];
-            foreach ($key as $v) {
-                if ($request->hasCache($merId, $v)) {
-                    $cacheData[$v] = $request->getCache($merId, $v);
-                } else {
-                    $_key[] = $v;
-                }
-            }
-            if (!count($_key)) return $cacheData;
-            $data = $make->more($_key, $merId);
-            $request->setCache($merId, $data);
-            $data += $cacheData;
-        } else {
-            if ($request->hasCache($merId, $key)) {
-                $data = $request->getCache($merId, $key);
-            } else {
-                $data = $make->get($key, $merId);
-                $request->setCache($merId, $key, $data);
-            }
-        }
-        return $data;
+        return app()->make(ConfigValueRepository::class)->getConfig($merId,$key);
     }
 }
 
@@ -974,53 +950,38 @@ if (!function_exists('update_crmeb_compiled')) {
         return true;
     }
 }
-
 if (!function_exists('attr_format')) {
+
     /**
      * 格式化属性
      * @param $arr
      * @return array
      */
-    function attr_format($arr)
+    function attr_format($arr): array
     {
-        $data = [];
-        $res = [];
-        $count = count($arr);
-        if ($count > 1) {
-            for ($i = 0; $i < $count - 1; $i++) {
-                if ($i == 0) $data = $arr[$i]['detail'];
-                //替代变量1
-                $rep1 = [];
-                foreach ($data as $v) {
-                    foreach ($arr[$i + 1]['detail'] as $g) {
-                        //替代变量2
-                        $rep2 = ($i != 0 ? '' : $arr[$i]['value'] . '_$_') . $v . '-$-' . $arr[$i + 1]['value'] . '_$_' . $g;
-                        $tmp[] = $rep2;
-                        if ($i == $count - 2) {
-                            foreach (explode('-$-', $rep2) as $k => $h) {
-                                //替代变量3
-                                $rep3 = explode('_$_', $h);
-                                //替代变量4
-                                $rep4['detail'][$rep3[0]] = isset($rep3[1]) ? $rep3[1] : '';
-                            }
-                            if ($count == count($rep4['detail']))
-                                $res[] = $rep4;
+        $len = count($arr);
+        $title = array_column($arr, 'value');
+        $result = [];
+
+        if ($len > 0) {
+            if ($len > 1) {
+                $result = $arr[0]['detail'];
+                for ($i = 0; $i < $len - 1; $i++) {
+                    $temp = $result;
+                    $result = [];
+                    foreach ($temp as $item) {
+                        foreach ($arr[$i + 1]['detail'] as $datum) {
+                            $result[] = trim($item) . ',' . trim($datum);
                         }
                     }
                 }
-                $data = isset($tmp) ? $tmp : [];
-            }
-        } else {
-            $dataArr = [];
-            foreach ($arr as $k => $v) {
-                foreach ($v['detail'] as $kk => $vv) {
-                    $dataArr[$kk] = $v['value'] . '_' . $vv;
-                    $res[$kk]['detail'][$v['value']] = $vv;
+            } else {
+                foreach ($arr[0]['detail'] as $item) {
+                    $result[] = trim($item);
                 }
             }
-            $data[] = implode('-', $dataArr);
         }
-        return [$data, $res];
+        return [$result, $title];
     }
 }
 

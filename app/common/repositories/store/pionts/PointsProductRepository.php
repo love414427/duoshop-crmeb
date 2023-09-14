@@ -440,7 +440,7 @@ class PointsProductRepository extends BaseRepository
      */
     public function setUnique(int $id, $sku, int $type)
     {
-        return $unique = substr(md5($sku . $id), 12, 11) . $type;
+        return $unique = substr(md5($sku . $id), 12, 10) . $type;
         //        $has = (app()->make(ProductAttrValueRepository::class))->merUniqueExists(null, $unique);
         //        return $has ? false : $unique;
     }

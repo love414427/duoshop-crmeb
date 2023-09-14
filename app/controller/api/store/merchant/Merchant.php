@@ -12,6 +12,7 @@
 
 namespace app\controller\api\store\merchant;
 
+use app\common\repositories\store\service\StoreServiceRepository;
 use app\common\repositories\user\UserMerchantRepository;
 use think\App;
 use crmeb\basic\BaseController;
@@ -60,7 +61,6 @@ class Merchant extends BaseController
         if ($this->request->isLogin()) {
             app()->make(UserMerchantRepository::class)->updateLastTime($this->request->uid(), intval($id));
         }
-
         return app('json')->success($this->repository->detail($id, $this->userInfo));
     }
 
@@ -68,9 +68,12 @@ class Merchant extends BaseController
     {
         $config = systemConfig(['site_logo', 'site_name','login_logo']);
         return app('json')->success([
-            'mer_avatar' => $config['login_logo'],
+            'mer_avatar' => $config['site_logo'],
             'mer_name' => $config['site_name'],
             'mer_id' => 0,
+            'postage_score' => '5.0',
+            'product_score' => '5.0',
+            'service_score' => '5.0',
         ]);
     }
 

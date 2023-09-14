@@ -59,7 +59,7 @@ class PageCategoryRepository extends BaseRepository
                 return $options;
             })->props(['props' => ['checkStrictly' => true, 'emitPath' => false]])->filterable(true)->appendValidate(Elm::validateInt()->required()->message('请选择上级分类')),
             Elm::input('name', '分类名称')->required(),
-            Elm::hidden('type','类型','link'),
+            Elm::input('type','类型','link'),
             Elm::switches('status', '是否显示', 1)->activeValue(1)->inactiveValue(0)->inactiveText('关')->activeText('开'),
             Elm::number('sort', '排序', 0)->precision(0)->max(99999),
             Elm::hidden('is_mer',$isMer),
@@ -71,15 +71,20 @@ class PageCategoryRepository extends BaseRepository
     {
         $where['pid'] = $pid;
         $where['is_mer'] = $type;
+        if($type == 1){
+            $where['not_type'] = 'product_category';
+        }
         $list = $this->dao->getSearch($where)->where('level','<',3)
-            ->field( 'id,pid,type,name label')->order('sort DESC,add_time DESC')->select();
+            ->field( 'id,pid,type,name label,status')->order('sort DESC,add_time DESC')->select();
         $arr = [];
         if ($list) {
             foreach ($list as $item) {
-                $item['title'] = $item['label'];
-                $item['expand'] = true;
-                $item['children'] = $this->getSonCategoryList($type,$item['id']);
-                $arr [] = $item;
+                if($item['status'] == 1){
+                    $item['title'] = $item['label'];
+                    $item['expand'] = true;
+                    $item['children'] = $this->getSonCategoryList($type,$item['id']);
+                    $arr [] = $item;
+                }
             }
         }
         return $arr;

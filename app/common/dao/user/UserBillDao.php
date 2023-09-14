@@ -146,7 +146,11 @@ class UserBillDao extends BaseDao
     public function deductionIntegral($uid)
     {
         return UserBill::getDB()->where('uid', $uid)
-            ->where('category', 'integral')->where('type', 'deduction')->sum('number');
+            ->where('category', 'integral')
+            ->where('pm', 0)
+            ->whereIn('type', ['deduction','refund_lock','timeout','sys_dec'])
+            ->where('status', 1)
+            ->sum('number');
     }
 
     public function totalGainIntegral($uid)

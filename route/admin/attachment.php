@@ -47,6 +47,18 @@ Route::group(function () {
     ]);
 
     Route::group('system/attachment', function () {
+        Route::get('scan_upload/qrcode/:pid', '/scanUploadQrcode')->name('systemAttachmentScanQrcode')->option([
+            '_alias' => '上传二维码',
+        ]);
+        Route::get('scan_upload/image/:token', '/scanUploadImage')->name('systemAttachmentScanImage')->option([
+            '_alias' => '扫码上传图片',
+        ]);
+        Route::post('scan_upload/image/:token', '/scanUploadSave')->name('systemAttachmentScanImageSave')->option([
+            '_alias' => '扫码上传保存',
+        ]);
+        Route::post('online_upload', '/onlineUpload')->name('systemAttachmentOnline')->option([
+            '_alias' => '在线图片',
+        ]);
         Route::get('lst', '/getList')->name('systemAttachmentLst')->option([
             '_alias' => '素材列表',
         ]);

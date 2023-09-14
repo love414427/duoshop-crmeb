@@ -14,6 +14,7 @@ namespace crmeb\services;
 
 use stdClass;
 use think\facade\Cache;
+
 /**
  * 复制主流商城商品
  * Class CopyProductService
@@ -155,17 +156,22 @@ class CopyProductService
             $result['spec_type'] = 1;
             $attr = array_values($result['items']);
             $result['info'] = self::formatAttr($attr);
-        }else{
+        } else {
             $result['spec_type'] = 0;
             $result['info'] = null;
         }
         if (!$result['image'] && $result['slider_image']) $result['image'] = $result['slider_image'][0] ?? '';
-        if($result['description']){
-            $result['description'] = str_replace('data-lazyload','src',$result['description']);
-            $pattern  = '/<img size=(.*?)>/';
-            $replacement  = '<img src="';
-            $result['description'] = preg_replace($pattern,$replacement,$result['description']);
-            $result['description'] = preg_replace('/<\/img>/','">',$result['description']);
+        if ($result['description']) {
+
+            if (!empty($result['description_images'])) {
+                $result['description'] = self::formatDescriptionImages($result['description_images']);
+            }
+
+            $result['description'] = str_replace('data-lazyload', 'src', $result['description']);
+            $pattern = '/<img size=(.*?)>/';
+            $replacement = '<img src="';
+            $result['description'] = preg_replace($pattern, $replacement, $result['description']);
+            $result['description'] = preg_replace('/<\/img>/', '">', $result['description']);
         }
         Cache::set(md5($url), $result, 3600 * 24);
         return self::setReturn(true, 'SUCCESS', $result);
@@ -485,58 +491,48 @@ class CopyProductService
      */
     public static function formatAttr(array $attr)
     {
-        $value = attr_format($attr)[1];
+        [$attr,$head] = attr_format($attr);
         $valueNew = [];
         $count = 0;
-        foreach ($value as $key => $item) {
-            $detail = $item['detail'];
-            sort($item['detail'], SORT_STRING);
-            $suk = implode(',', $item['detail']);
-            $sukValue[$suk]['image'] = '';
-            $sukValue[$suk]['price'] = 0;
-            $sukValue[$suk]['cost'] = 0;
-            $sukValue[$suk]['ot_price'] = 0;
-            $sukValue[$suk]['stock'] = 0;
-            $sukValue[$suk]['bar_code'] = '';
-            $sukValue[$suk]['weight'] = 0;
-            $sukValue[$suk]['volume'] = 0;
-            $sukValue[$suk]['brokerage'] = 0;
-            $sukValue[$suk]['brokerage_two'] = 0;
-
-            foreach (array_keys($detail) as $k => $title) {
-                if ($title == '') continue;
-                $header[$k]['title'] = $title;
-                $header[$k]['align'] = 'center';
-                $header[$k]['minWidth'] = 120;
-            }
-            foreach (array_values($detail) as $k => $v) {
-                if ($v == '') continue;
+        foreach ($attr as $suk) {
+            $detail = explode(',',$suk);
+            foreach ($detail as $k => $v) {
                 $valueNew[$count]['value' . ($k + 1)] = $v;
-                $header[$k]['key'] = 'value' . ($k + 1);
             }
-            $valueNew[$count]['detail'] = $detail;
-            $valueNew[$count]['image'] = $sukValue[$suk]['image'] ?? '';
-            $valueNew[$count]['price'] = $sukValue[$suk]['price'] ? floatval($sukValue[$suk]['price']) : 0;
-            $valueNew[$count]['cost'] = $sukValue[$suk]['cost'] ? floatval($sukValue[$suk]['cost']) : 0;
-            $valueNew[$count]['ot_price'] = isset($sukValue[$suk]['ot_price']) ? floatval($sukValue[$suk]['ot_price']) : 0;
-            $valueNew[$count]['stock'] = $sukValue[$suk]['stock'] ? intval($sukValue[$suk]['stock']) : 0;
-            $valueNew[$count]['bar_code'] = $sukValue[$suk]['bar_code'] ?? '';
-            $valueNew[$count]['weight'] = $sukValue[$suk]['weight'] ? floatval($sukValue[$suk]['weight']) : 0;
-            $valueNew[$count]['volume'] = $sukValue[$suk]['volume'] ? floatval($sukValue[$suk]['volume']) : 0;
-            $valueNew[$count]['brokerage'] = $sukValue[$suk]['brokerage'] ? floatval($sukValue[$suk]['brokerage']) : 0;
-            $valueNew[$count]['brokerage_two'] = $sukValue[$suk]['brokerage_two'] ? floatval($sukValue[$suk]['brokerage_two']) : 0;
+            $valueNew[$count]['detail'] = array_combine($head, $detail);
+            $valueNew[$count]['image'] = '';
+            $valueNew[$count]['price'] = 0;
+            $valueNew[$count]['cost'] =  0;
+            $valueNew[$count]['ot_price'] = 0;
+            $valueNew[$count]['stock'] = 0;
+            $valueNew[$count]['bar_code'] = '';
+            $valueNew[$count]['weight'] = 0;
+            $valueNew[$count]['volume'] = 0;
+            $valueNew[$count]['brokerage'] =  0;
+            $valueNew[$count]['brokerage_two'] = 0;
             $count++;
         }
-        $header[] = ['title' => '图片', 'slot' => 'image', 'align' => 'center', 'minWidth' => 80];
-        $header[] = ['title' => '售价', 'slot' => 'price', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '成本价', 'slot' => 'cost', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '原价', 'slot' => 'ot_price', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '库存', 'slot' => 'stock', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '商品编号', 'slot' => 'bar_code', 'align' => 'center', 'minWidth' => 120];
-        $header[] = ['title' => '重量(KG)', 'slot' => 'weight', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '体积(m³)', 'slot' => 'volume', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '操作', 'slot' => 'action', 'align' => 'center', 'minWidth' => 70];
-        $info = ['attr' => $attr, 'value' => $valueNew, 'header' => $header];
+        $info = ['attr' => $attr, 'value' => $valueNew];
         return $info;
+    }
+
+    /**
+     * 提还详情数据
+     * @param array $description_images  详情图片
+     * @return string
+     *
+     * @date 2023/08/31
+     * @author yyw
+     */
+    public static function formatDescriptionImages(array $description_images)
+    {
+        $content = '';
+        foreach ($description_images as $image) {
+            if (strstr($image, 'http') === false) {
+                $image = 'http:' . $image;
+            }
+            $content .= '<p><img src="' . $image . '"></p>';
+        }
+        return $content;
     }
 }

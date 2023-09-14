@@ -60,7 +60,7 @@ class ProductRepository extends BaseRepository
 
     protected $dao;
     const CREATE_PARAMS = [
-        "image", "slider_image", "store_name", "store_info", "keyword", "bar_code", "guarantee_template_id", "cate_id",  "unit_name", "sort" , "is_show", "is_good", 'is_gift_bag', 'integral_rate', "video_link", "temp_id", "content", "spec_type", "extension_type", "attr", 'mer_labels', 'delivery_way', 'delivery_free','param_temp_id','extend',
+        "is_copy", "image", "slider_image", "store_name", "store_info", "keyword", "bar_code", "guarantee_template_id", "cate_id",  "unit_name", "sort" , "is_show", "is_good", 'is_gift_bag', 'integral_rate', "video_link", "temp_id", "content", "spec_type", "extension_type", "attr", 'mer_labels', 'delivery_way', 'delivery_free','param_temp_id','extend',
         ["mer_cate_id",[]],
         ['refund_switch',1],
         ["brand_id",0],
@@ -75,8 +75,8 @@ class ProductRepository extends BaseRepository
         ['params',[]],
         ['product_type',0],
     ];
-    protected $admin_filed = 'Product.product_id,Product.mer_id,brand_id,spec_type,unit_name,mer_status,rate,reply_count,store_info,cate_id,Product.image,slider_image,Product.store_name,Product.keyword,Product.sort,U.rank,Product.is_show,Product.sales,Product.price,extension_type,refusal,cost,U.ot_price,stock,is_gift_bag,Product.care_count,Product.status,is_used,Product.create_time,Product.product_type,old_product_id,star,ficti,integral_total,integral_price_total,sys_labels,param_temp_id,mer_svip_status,svip_price,svip_price_type';
-    protected $filed = 'Product.product_id,Product.mer_id,brand_id,unit_name,spec_type,mer_status,rate,reply_count,store_info,cate_id,Product.image,slider_image,Product.store_name,Product.keyword,Product.sort,Product.is_show,Product.sales,Product.price,extension_type,refusal,cost,U.ot_price,stock,is_gift_bag,Product.care_count,Product.status,is_used,Product.create_time,Product.product_type,old_product_id,integral_total,integral_price_total,mer_labels,Product.is_good,Product.is_del,type,param_temp_id,mer_svip_status,svip_price,svip_price_type';
+    protected $admin_filed = 'Product.product_id,Product.mer_id,brand_id,spec_type,unit_name,mer_status,rate,reply_count,store_info,cate_id,Product.image,slider_image,Product.store_name,Product.keyword,Product.sort,U.rank,Product.is_show,Product.sales,Product.price,extension_type,refusal,cost,Product.ot_price,stock,is_gift_bag,Product.care_count,Product.status,is_used,Product.create_time,Product.product_type,old_product_id,star,ficti,integral_total,integral_price_total,sys_labels,param_temp_id,mer_svip_status,svip_price,svip_price_type';
+    protected $filed = 'Product.product_id,Product.mer_id,brand_id,unit_name,spec_type,mer_status,rate,reply_count,store_info,cate_id,Product.image,slider_image,Product.store_name,Product.keyword,Product.sort,Product.is_show,Product.sales,Product.price,extension_type,refusal,cost,Product.ot_price,stock,is_gift_bag,Product.care_count,Product.status,is_used,Product.create_time,Product.product_type,old_product_id,integral_total,integral_price_total,mer_labels,Product.is_good,Product.is_del,type,param_temp_id,mer_svip_status,svip_price,svip_price_type';
 
     const  NOTIC_MSG  = [
             1  => [
@@ -326,7 +326,8 @@ class ProductRepository extends BaseRepository
         (app()->make(ProductAttrValueRepository::class))->clearAttr($id);
         (app()->make(ProductContentRepository::class))->clearAttr($id, null);
         (app()->make(ProductCateRepository::class))->clearAttr($id);
-        $this->dao->delete($id, true);
+        $res = $this->dao->destory($id);
+
     }
 
     /**
@@ -687,10 +688,9 @@ class ProductRepository extends BaseRepository
                 $query->where('type',$conType);
             },
             'merchant'=> function($query){
-                $query->field('mer_id,mer_avatar,mer_name,is_trader');
+                $query->with(['typeName','categoryName'])->field('mer_id,category_id,type_id,mer_avatar,mer_name,is_trader');
             },
             'guarantee.templateValue.value',
-
         ];
 
         $data = $this->dao->geTrashedtProduct($id)->with($with)->find();
@@ -717,10 +717,12 @@ class ProductRepository extends BaseRepository
         if ($data['product_type'] == 4) $make = app()->make(ProductGroupSkuRepository::class);
 
         $spu_where = ['activity_id' => $activeId, 'product_type' => $data['product_type'], 'product_id' => $id];
-        $spu = $spu_make->getSearch($spu_where)->find();
+        $spu = $spu_make->getSearch($spu_where)->find()->append(['mer_labels_data','sys_labels_data']);
         $data['star'] = $spu['star'] ?? '';
         $data['mer_labels'] = $spu['mer_labels'] ?? '';
         $data['sys_labels'] = $spu['sys_labels'] ?? '';
+        $data['mer_labels_data'] = $spu['mer_labels_data'] ?? [];
+        $data['sys_labels_data'] = $spu['sys_labels_data'] ?? [];
 
         $data->append($append);
         $mer_cat = [];
@@ -741,10 +743,11 @@ class ProductRepository extends BaseRepository
         unset($data['oldAttrValue'], $data['attrValue']);
         $arr = [];
         if (in_array($data['product_type'], [1, 3])) $value_make = app()->make(ProductAttrValueRepository::class);
+
         foreach ($attrValue as $item) {
             if ($data['product_type'] == 1) {
                 $value = $value_make->getSearch(['sku' => $item['sku'], 'product_id' => $data['old_product_id']])->find();
-                $old_stock = $value['stock'];
+                if($value) $old_stock = $value['stock'];
                 $item['sales'] = $make->skuSalesCount($item['unique']);
             }
             if ($data['product_type'] == 2) {
@@ -785,6 +788,18 @@ class ProductRepository extends BaseRepository
         if ($conType) $content = json_decode($content);
         unset($data['content']);
         $data['content'] = $content;
+
+        // 查找该商品积分抵扣比例
+        if(!empty($data['merchant'])){
+            $data['merchant']['mer_integral_status'] = merchantConfig($data['merchant']['mer_id'],'mer_integral_status');
+            $data['merchant']['mer_integral_rate'] = merchantConfig($data['merchant']['mer_id'],'mer_integral_rate');
+        }
+
+        // 拼接商品分类
+        if (!empty($data['storeCategory'])) {
+            $cate_name = app()->make(StoreCategoryRepository::class)->getAllFatherName($data['storeCategory']['store_category_id']);
+            $data['storeCategory']['cate_name'] = $cate_name;
+        }
         return $data;
     }
 
@@ -797,6 +812,7 @@ class ProductRepository extends BaseRepository
      */
     public function switchType($type, ?int $merId = 0, $productType = 0)
     {
+//        1 出售中 2 仓库中 3 已售罄 4 警戒库存 5 回收站 6 待审核 7 审核未通过
         $stock = 0;
         if ($merId) $stock = merchantConfig($merId, 'mer_store_stock');
         switch ($type) {
@@ -939,25 +955,23 @@ class ProductRepository extends BaseRepository
         $make = app()->make(StoreOrderRepository::class);
         $query = $this->dao->search($merId, $where)->with(['merCateId.category', 'storeCategory', 'brand', 'attrValue ', 'seckillActive']);
         $count = $query->count();
-        $data = $query->page($page, $limit)->setOption('field', [])->field($this->filed)->order('sort DESC')->select()
-            ->each(function ($item) use ($make, $where) {
-                $result = $this->getSeckillAttrValue($item['attrValue'], $item['old_product_id']);
-                $item['stock'] = $result['stock'];
-                return $item;
-            });
-        $data->append(['seckill_status', 'us_status']);
-
-        $list = hasMany(
-            $data ,
-            'mer_labels',
-            ProductLabel::class,
-            'product_label_id',
-            'mer_labels',
-            ['status' => 1],
-            'product_label_id,product_label_id id,label_name name'
-        );
-
-
+        $list = $query->page($page, $limit)->setOption('field', [])->field($this->filed)->order('sort DESC')->select()->append(['seckill_status', 'us_status']);
+//            ->each(function ($item) use ($make, $where) {
+//                $result = $this->getSeckillAttrValue($item['attrValue'], $item['old_product_id']);
+//                $item['stock'] = $result['stock'];
+//                return $item;
+//            });
+//        $data->append(['seckill_status', 'us_status']);
+//
+//        $list = hasMany(
+//            $data ,
+//            'mer_labels',
+//            ProductLabel::class,
+//            'product_label_id',
+//            'mer_labels',
+//            ['status' => 1],
+//            'product_label_id,product_label_id id,label_name name'
+//        );
         return compact('count', 'list');
     }
 
@@ -1016,26 +1030,25 @@ class ProductRepository extends BaseRepository
             'attrValue',
         ]);
         $count = $query->count();
-        $data = $query->page($page, $limit)
+        $list = $query->page($page, $limit)
             ->field('Product.*,U.star,U.rank,U.sys_labels')
-            ->select()
-            ->each(function ($item) use ($where) {
-                $result = $this->getSeckillAttrValue($item['attrValue'], $item['old_product_id']);
-                $item['stock'] = $result['stock'];
-                $item['sales'] = app()->make(StoreOrderRepository::class)->seckillOrderCounut($item['product_id']);
-                return $item;
-            });
-        $data->append(['seckill_status', 'us_status']);
-
-        $list = hasMany(
-            $data ,
-            'sys_labels',
-            ProductLabel::class,
-            'product_label_id',
-            'sys_labels',
-            ['status' => 1],
-            'product_label_id,product_label_id id,label_name name'
-        );
+            ->select()->append(['seckill_status', 'us_status']);
+//            ->each(function ($item) use ($where) {
+//                $result = $this->getSeckillAttrValue($item['attrValue'], $item['old_product_id']);
+//                $item['stock'] = $result['stock'];
+//                $item['sales'] = app()->make(StoreOrderRepository::class)->seckillOrderCounut($item['product_id']);
+//                return $item;
+//            });
+//        $list = $data->append(['seckill_status', 'us_status']);
+//        $list = hasMany(
+//            $data ,
+//            'sys_labels',
+//            ProductLabel::class,
+//            'product_label_id',
+//            'sys_labels',
+//            ['status' => 1],
+//            'product_label_id,product_label_id id,label_name name'
+//        );
 
         return compact('count', 'list');
     }
@@ -1078,7 +1091,7 @@ class ProductRepository extends BaseRepository
      */
     public function getApiSeckill(array $where, int $page, int $limit)
     {
-        $field = 'Product.product_id,Product.mer_id,is_new,U.keyword,brand_id,U.image,U.product_type,U.store_name,U.sort,U.rank,star,rate,reply_count,sales,U.price,cost,U.ot_price,stock,extension_type,care_count,unit_name,U.create_time';
+        $field = 'Product.product_id,Product.mer_id,is_new,U.keyword,brand_id,U.image,U.product_type,U.store_name,U.sort,U.rank,star,rate,reply_count,sales,U.price,cost,Product.ot_price,stock,extension_type,care_count,unit_name,U.create_time';
         $make = app()->make(StoreOrderRepository::class);
         $res = app()->make(StoreSeckillTimeRepository::class)->getBginTime($where);
         $count = 0;
@@ -1092,12 +1105,23 @@ class ProductRepository extends BaseRepository
                 'star' => '',
                 'mer_id' => $where['mer_id']
             ];
+            $h =  date('H',time());
+
+            if ($h < $where['start_time']) {
+                $skill_status = 0;
+            } else if ($h < $where['end_time']) {
+                $skill_status = 1;
+            } else {
+                $skill_status = -1;
+            }
+
             $query = $this->dao->seckillSearch($where)->with(['seckillActive']);
             $count = $query->count();
             $list = $query->page($page, $limit)->setOption('field', [])->field($field)->select()
-                ->each(function ($item) use ($make) {
+                ->each(function ($item) use ($make,$skill_status) {
                     $item['sales'] = $make->seckillOrderCounut($item['product_id']);
                     $item['stop']  = $item->end_time;
+                    $item['skill_status']  = $skill_status;
                     return $item;
                 });
         }
@@ -1171,82 +1195,113 @@ class ProductRepository extends BaseRepository
         return $this->apiProductDetail($where, 1, null,$userInfo);
     }
 
-    public function apiProductDetail(array $where, int $productType, ?int $activityId, $userInfo = null)
+    /**
+     * TODO 移动端商品详情
+     * @param $productId
+     * @param $cache_unique
+     * @return array|mixed
+     * @author Qinii
+     * @day 2023/8/23
+     */
+    public function getContent($productId)
+    {
+        $key = '_get_content'.$productId;
+        $res = Cache::get($key);
+        if ($res) return json_decode($res, true);
+        $res = app()->make(ProductContentRepository::class)->getWhere(['product_id' => $productId]);
+        if ($res['content'] && $res['type'] == 1) {
+            $res['content'] = json_decode($res['content']);
+        }
+        Cache::set($key, json_encode($res), 1500);
+        return $res;
+    }
+
+
+    /**
+     * TODO 移动端商品详情查询店铺信息
+     * @param $merId
+     * @param $userInfo
+     * @param $productId
+     * @return array|mixed
+     * @author Qinii
+     * @day 2023/8/23
+     */
+    public function getMerchant($merId, $productId, $uid)
+    {
+        $merchantRepository = app()->make(MerchantRepository::class);
+        $care = false;
+        if ($uid) $care = $merchantRepository->getCareByUser($merId, $uid);
+        $merchant = $merchantRepository->search(['mer_id' => $merId])
+            ->field('mer_id,mer_name,real_name,mer_address,mer_keyword,mer_avatar,mer_banner,mini_banner,product_score,service_score,postage_score,service_phone,care_count')->find()
+           ->append(['isset_certificate','services_type'])->toArray();
+        $merchant['top_banner'] = merchantConfig($merId, 'mer_pc_top');
+        $merchant['care'] = $care;
+        $merchant['recommend'] = $this->getRecommend($productId,$merId);
+        return $merchant;
+    }
+
+    public function apiProductDetail($where,int $productType, ?int $activityId, $userInfo = null)
     {
         $field = 'is_show,product_id,mer_id,image,slider_image,store_name,store_info,unit_name,price,cost,ot_price,stock,sales,video_link,product_type,extension_type,old_product_id,rate,guarantee_template_id,temp_id,once_max_count,pay_limit,once_min_count,integral_rate,delivery_way,delivery_free,type,cate_id,svip_price_type,svip_price,mer_svip_status';
         $with = [
             'attr',
-            'content' => function($query) {
-                $query->order('type ASC');
-            },
             'attrValue',
-            'oldAttrValue',
-            'merchant' => function ($query) {
-                $query->with(['type_name'])->append(['isset_certificate','services_type']);
-            },
-            'seckillActive' => function ($query) {
-                $query->field('start_day,end_day,start_time,end_time,product_id');
-            },
-            'temp'
         ];
-
-        $append = ['guaranteeTemplate','params'];
-        $where['product_type'] = $productType;
-
-        $res = $this->dao->getWhere($where, $field, $with);
-        if (!$res)  return [];
-        switch ($res['product_type']) {
-            case 0:
+        $append = ['topReply'];
+        switch ($productType) {
+            case 1:
+                $with['seckillActive'] =  function ($query) {
+                    $query->field('start_day,end_day,start_time,end_time,product_id,once_pay_count,all_pay_count');
+                };
+                $append[] = 'seckill_status';
+                break;
+            case 2:
+                break;
+            case 3:
+                //notbreak;
+            case 4:
+                $with[] =  'oldAttrValue';
+                break;
+            default:
+                if ($userInfo && $this->getUserIsPromoter($userInfo) && $productType == 0) {
+                    $append[] = 'max_extension';
+                    $append[] = 'min_extension';
+                }
                 $append[] = 'max_integral';
                 $append[] = 'show_svip_info';
                 break;
-            case 1:
-                $_where = $this->dao->productShow();
-                $_where['product_id'] = $res['old_product_id'];
-                $oldProduct = $this->dao->getWhere($_where);
-                $result = $this->getSeckillAttrValue($res['attrValue'], $res['old_product_id']);
-                $res['attrValue'] = $result['item'];
-
-                $res['stock'] = $result['stock'];
-                $res['stop'] = strtotime(date('Y-m-d', time()) . $res['seckillActive']['end_time'] . ':00:00');
-                $res['sales'] = app()->make(StoreOrderRepository::class)->seckillOrderCounut($where['product_id']);
-                $res['quota'] = $this->seckillStock($where['product_id']);
-                $res['old_status'] = $oldProduct ? 1 : 0;
-                $append[] = 'seckill_status';
-                break;
-            default:
-                break;
+        }
+        $product = $this->dao->getWhere($where,$field,$with);
+        if (!$product) throw new ValidateException('商品已下架');
+        if ($productType == 1) {
+            $result = $this->getSeckillAttrValue($product['attrValue'], $product['old_product_id']);
+            $product['attrValue'] = $result['item'];
+            $product['stock'] = $result['stock'];
+            $product['stop'] = strtotime(date('Y-m-d', time()) . $product['seckillActive']['end_time'] . ':00:00');
+            $product['sales'] = app()->make(StoreOrderRepository::class)->seckillOrderCounut($where['product_id']);
+//            $product['quota'] = $this->seckillStock($where['product_id']);
+            $product['once_pay_count'] = $product['seckillActive']['once_pay_count'];
+            $product['all_pay_count'] = $product['seckillActive']['all_pay_count'];
+            unset($product['seckillActive']);
         }
 
+        $isRelation = false;
         if ($userInfo) {
-            try {
-                $isRelation = app()->make(UserRelationRepository::class)->getUserRelation(['type_id' => $activityId ?? $where['product_id'], 'type' => $res['product_type']], $userInfo['uid']);
-            } catch (\Exception $e) {
-                $isRelation = false;
-            }
-            if ($this->getUserIsPromoter($userInfo) && $productType == 0) {
-                $append[] = 'max_extension';
-                $append[] = 'min_extension';
-            }
+            $isRelation = app()->make(UserRelationRepository::class)->getUserRelation([
+                'type_id' => $activityId ?? $where['product_id'],
+                'type' => $productType
+            ],
+                $userInfo['uid']
+            );
         }
 
-        $attr = $this->detailAttr($res['attr']);
-        $attrValue = (in_array($res['product_type'], [3, 4])) ?  $res['oldAttrValue'] : $res['attrValue'];
-        $sku  = $this->detailAttrValue($attrValue, $userInfo, $productType, $activityId);
-
-        $res['isRelation'] = $isRelation ?? false;
-        $care = false;
-        if ($userInfo) {
-            $care = app()->make(MerchantRepository::class)->getCareByUser($res['mer_id'], $userInfo->uid);
-        }
-        $res['merchant']['top_banner'] = merchantConfig($res['mer_id'], 'mer_pc_top');
-        $res['merchant']['care'] = $care;
-        $res['replayData'] = null;
         if (systemConfig('sys_reply_status')){
-            $res['replayData'] = app()->make(ProductReplyRepository::class)->getReplyRate($res['product_id']);
-            $append[] = 'topReply';
+            $product['replayData'] = app()->make(ProductReplyRepository::class)->getReplyRate($product['product_id']);
         }
-        unset($res['attr'], $res['attrValue'], $res['oldAttrValue'], $res['seckillActive']);
+        $attr = $this->detailAttr($product['attr']);
+        $attrValue = (in_array($product['product_type'], [3, 4])) ?  $product['oldAttrValue'] : $product['attrValue'];
+        $sku  = $this->detailAttrValue($attrValue, $userInfo, $productType, $activityId);
+        unset($product['attr'], $product['attrValue'], $product['oldAttrValue']);
         if (count($attr) > 1) {
             $firstSku = [];
             foreach ($attr as $item) {
@@ -1257,40 +1312,75 @@ class ProductRepository extends BaseRepository
                 $sku = array_merge([$firstSkuKey => $sku[$firstSkuKey]], $sku);
             }
         }
-        $res['attr'] = $attr;
-        $res['sku'] = $sku;
-        $res->append($append);
-
-        if ($res['content'] && $res['content']['type'] == 1) {
-            $res['content']['content'] = json_decode($res['content']['content']);
-        }
-
-        $res['merchant']['recommend'] = $this->getRecommend($res['product_id'], $res['mer_id']);
-        $spu = app()->make(SpuRepository::class)->getSpuData(
-            $activityId ?: $res['product_id'],
-            $productType,
-            0
-        );
-        $res['spu_id'] = $spu->spu_id;
-        if (systemConfig('community_status')) {
-            $res['community'] = app()->make(CommunityRepository::class)->getDataBySpu($spu->spu_id);
-        }
-        //热卖排行
-        if (systemConfig('hot_ranking_switch') && $res['spu_id']) {
-            $hot = $this->getHotRanking($res['spu_id'], $res['cate_id']);
-            $res['top_name'] = $hot['top_name'] ?? '';
-            $res['top_num'] = $hot['top_num'] ?? 0;
-            $res['top_pid'] = $hot['top_pid'] ?? 0;
-        }
-        //活动氛围图
-        if (in_array($res['product_type'],[0,2,4])){
-            $active =  app()->make(StoreActivityRepository::class)->getActivityBySpu(StoreActivityRepository::ACTIVITY_TYPE_ATMOSPHERE,$res['spu_id'],$res['cate_id'],$res['mer_id']);
-            if ($active) $res['atmosphere_pic'] = $active['pic'];
-        }
-
-        return $res;
+        $product = $product->append($append);
+        $product['attr'] = $attr;
+        $product['sku'] = $sku;
+        $product['isRelation'] = $isRelation;
+        return  $product;
     }
 
+    /**
+     * TODO 商品详情部分缓存
+     * @param $productId
+     * @param $product
+     * @param $activityId
+     * @param $uid
+     * @return mixed
+     * @author Qinii
+     * @day 2023/8/24
+     */
+    public function getProductShow($productId,$product, $activityId,$uid)
+    {
+        if (empty($product)) {
+            $product = $this->dao->get($productId)->toArray();
+        }
+        ksort($product);
+        $cache_unique = 'get_product_show_' .$productId.'_'. md5(json_encode($product));
+        $res = Cache::get($cache_unique);
+
+        if (!$res){
+            $productType = $product['product_type'];
+            $res['content'] = $this->getContent($product['product_id']);
+            $res['temp'] = app()->make(ShippingTemplateRepository::class)->getSearch([])->where('shipping_template_id',$product['temp_id'])->find();
+            if(in_array($product['product_type'],[0,2])) {
+                $product_id = $product['product_id'];
+            } else {
+                $product_id = $product['old_product_id'];
+            }
+            $res['params'] = app()->make(ParameterValueRepository::class)->getSearch([])->where('product_id',$product_id)->order('parameter_value_id ASC')->select();
+            $guaranteeTemplateRepository = app()->make(GuaranteeTemplateRepository::class);
+            $guaranteeTemplate = $guaranteeTemplateRepository->getSearch([])->where('guarantee_template_id',$product['guarantee_template_id'])->where('status',1)->where('is_del',0)->find();
+            if ($guaranteeTemplate) {
+                $guaranteeValueRepository = app()->make(GuaranteeValueRepository::class);
+                $guaranteeRepository = app()->make(GuaranteeRepository::class);
+                $guarantee_id = $guaranteeValueRepository->getSearch([])->where('guarantee_template_id',$guaranteeTemplate['guarantee_template_id'])->column('guarantee_id');
+                $res['guarantee'] = $guaranteeRepository->getSearch([])->where('guarantee_id','in',$guarantee_id)->where('status',1)->where('is_del',0)->select()->toArray();
+            }
+            $spu = app()->make(SpuRepository::class)->getSpuData($activityId ?: $product['product_id'], $productType, 0);
+            $res['spu_id'] = $spu['spu_id'];
+            if (systemConfig('community_status')) {
+                $res['community'] = app()->make(CommunityRepository::class)->getDataBySpu($spu['spu_id']);
+            }
+            //热卖排行
+            if (systemConfig('hot_ranking_switch') && $res['spu_id']) {
+                $hot = $this->getHotRanking($res['spu_id'], $product['cate_id']);
+                $res['top_name'] = $hot['top_name'] ?? '';
+                $res['top_num'] = $hot['top_num'] ?? 0;
+                $res['top_pid'] = $hot['top_pid'] ?? 0;
+            }
+            //活动氛围图
+            if (in_array($product['product_type'],[0,2,4])) {
+                $storeActivityRepository = app()->make(StoreActivityRepository::class);
+                $active = $storeActivityRepository->getActivityBySpu(StoreActivityRepository::ACTIVITY_TYPE_ATMOSPHERE, $res['spu_id'], $product['cate_id'], $product['mer_id']);
+                if (!empty($active)) $res['atmosphere_pic'] = $active['pic'];
+            }
+            Cache::tag('get_product')->set($cache_unique, json_encode($res), 1500);
+        } else {
+            $res = json_decode($res, true);
+        }
+        $res['merchant'] = $this->getMerchant($product['mer_id'],$product['product_id'],$uid);
+        return $res;
+    }
 
     /**
      * TODO 热卖排行
@@ -1301,6 +1391,9 @@ class ProductRepository extends BaseRepository
      */
     public function getHotRanking(int $spuId, int $cateId)
     {
+        $cache_unique = md5('get_hot_ranking_' . json_encode([$spuId,$cateId]));
+        $res = Cache::get($cache_unique);
+        if ($res) return json_decode($res, true);
         $data = [];
         //热卖排行
         $lv = systemConfig('hot_ranking_lv') ?:0;
@@ -1318,6 +1411,7 @@ class ProductRepository extends BaseRepository
             $data['top_num']  = $top[1];
             $data['top_pid']  = $cateId;
         }
+        Cache::set($cache_unique, json_encode($data), 1500);
         return $data;
     }
 
@@ -1331,14 +1425,18 @@ class ProductRepository extends BaseRepository
      */
     public function getRecommend($productId,$merId)
     {
+        $cache_unique = 'get_product_recommend_' .$productId.'_'. $merId;
+        $res = Cache::get($cache_unique);
+        if ($res) return json_decode($res,true);
+
+        $field = 'mer_id,product_id,store_name,image,price,is_show,status,is_gift_bag,is_good,sales,create_time';
         $make = app()->make(ProductCateRepository::class);
         $product_id = [];
         if ($productId) {
             $catId = $make->getSearch(['product_id' => $productId])->column('mer_cate_id');
             $product_id = $make->getSearch([])->whereIn('mer_cate_id',$catId)->column('product_id');
         }
-
-        $query = $this->dao->getSearch([])
+        $res = $this->dao->getSearch([])
             ->where($this->dao->productShow())
             ->when($productId,function($query) use ($productId) {
                 $query->where('product_id','<>',$productId);
@@ -1346,29 +1444,23 @@ class ProductRepository extends BaseRepository
             ->when($product_id,function($query) use ($product_id) {
                 $query->whereIn('product_id',$product_id);
             })
-            ->where('mer_id',$merId)->limit(10);
-        $data = [];
-        $count = $query->count();
-
+            ->where('mer_id',$merId)->setOption('field',[])->field($field)->limit(3)->select();
+        $data = $res ? $res->toArray() : [];
+        $count = count($res);
         if ($count < 3) {
             $productIds[] = $productId;
-            $data = $this->dao->getSearch([])
+            $res = $this->dao->getSearch([])
                 ->where($this->dao->productShow())
                 ->whereNotIn('product_id',$productIds)
                 ->where('is_good',1)
                 ->where('mer_id', $merId)
-                ->field('mer_id,product_id,store_name,image,price,is_show,status,is_gift_bag,is_good,sales,create_time')
+                ->field('mer_id,product_id,store_name,image,price,is_show,status,is_gift_bag,is_good,sales,sort,create_time')
                 ->order('sort DESC,create_time DESC')
                 ->limit((3 - $count))
                 ->select()->toArray();
-        } if ($count > 0 ){
-            $count = $count  > 3 ? 3 : $count;
-            $res = $query->setOption('field',[])->field('mer_id,product_id,store_name,image,price,is_show,status,is_gift_bag,is_good,sales,create_time')
-                ->order('sort DESC,create_time DESC')
-                ->limit($count)
-                ->select()->toArray();
-            $data = array_merge($data, $res);
+            $data = array_merge($data,$res);
         }
+        Cache::tag('get_product')->set($cache_unique, json_encode($data), 1500);
         return $data;
     }
 
@@ -1383,6 +1475,7 @@ class ProductRepository extends BaseRepository
      */
     public function detailAttr($data, $preview = 0, $user = null)
     {
+
         $attr = [];
         foreach ($data as $key => $item) {
             if ($item instanceof Arrayable) {
@@ -1426,25 +1519,27 @@ class ProductRepository extends BaseRepository
          *  原商品库存 < 限购数
          *      限购数 = 原商品库存
          */
-        $make = app()->make(ProductAttrValueRepository::class);
-        $order_make = app()->make(StoreOrderRepository::class);
+        $productAttrValueRepository = app()->make(ProductAttrValueRepository::class);
+        $storeOrderProductRepository = app()->make(StoreOrderProductRepository::class);
+        $orderCount = $storeOrderProductRepository->getSearch([])
+            ->where('product_sku','in',array_column($data->toArray(),'unique'))
+            ->where('is_refund','in','0,1,2')
+            ->whereDay('create_time')
+            ->column('refund_num','product_sku');
+
         $stock = 0;
         $item = [];
-        foreach ($data as $k => $value) {
-            $where = [
-                'sku' => $value['sku'],
-                'product_id' => $oldProductId
-            ];
-            //愿商品库存信息
-            $attr = $make->getWhere($where);
-            if ($attr) {
-                $value['stock'] = ($attr['stock'] < $value['stock']) ?
-                    $attr['stock'] :
-                    $value['stock'] - $order_make->seckillSkuOrderCounut($value['unique']);
+        $oldAttrValue = $productAttrValueRepository->search(['product_id' => $oldProductId])->select();
+        foreach ($data as $value) {
+            foreach ($oldAttrValue as $attr) {
+                if ($value['sku'] == $attr['sku'] && ($attr['stock'] > $value['stock']) && isset($value['unique'])) {
+                    $value['stock']  =  $value['stock'] - ($orderCount[$value['unique']] ?? 0);
+                }
             }
             $stock = $stock + $value['stock'];
             $item[] = $value;
         }
+
         return compact('item', 'stock');
     }
     /**
@@ -1765,6 +1860,7 @@ class ProductRepository extends BaseRepository
                 $oldId = $cart['cart_info']['product']['old_product_id'];
                 $productAttrValueRepository->incSkuStock($oldId, $cart['cart_info']['productAttr']['sku'], $productNum);
                 $this->dao->incStock($oldId, $productNum);
+                $this->dao->descSales($cart['cart_info']['product']['product_id'], $productNum);
             } else if ($cart['product_type'] == '2') {
                 $presellSku = app()->make(ProductPresellSkuRepository::class);
                 $presellSku->incStock($cart['cart_info']['productPresellAttr']['product_presell_id'], $cart['cart_info']['productPresellAttr']['unique'], $productNum);
@@ -1829,6 +1925,18 @@ class ProductRepository extends BaseRepository
         $product = $this->dao->search(null, $where)->find();
 
         if (!$product) throw new ValidateException('商品已下架');
+        if ($product['once_min_count'] > 0 &&  $product['once_min_count'] > $data['cart_num'])
+            throw new ValidateException('[低于起购数:'.$product['once_min_count'].']'.mb_substr($product['store_name'],0,10).'...');
+        if ($product['pay_limit'] == 1 && $product['once_max_count'] < $data['cart_num'])
+            throw new ValidateException('[超出单次限购数：'.$product['once_max_count'].']'.mb_substr($product['store_name'],0,10).'...');
+        if ($product['pay_limit'] == 2){
+            //如果长期限购
+            //已购买数量
+            $storeOrderRepository = app()->make(StoreOrderRepository::class);
+            $count = $storeOrderRepository->getMaxCountNumber($userInfo->uid,$product['product_id']);
+            if (($data['cart_num'] + $count) > $product['once_max_count'])
+                throw new ValidateException('[超出限购总数：'. $product['once_max_count'].']'.mb_substr($product['store_name'],0,10).'...');
+        }
         if ($product['type'] && !$data['is_new']) throw new ValidateException('虚拟商品不可加入购物车');
         $value_make = app()->make(ProductAttrValueRepository::class);
         $sku = $value_make->getOptionByUnique($data['product_attr_unique']);
@@ -1840,7 +1948,6 @@ class ProductRepository extends BaseRepository
             if ($data['cart_num'] !== 1) throw new ValidateException('礼包商品只能购买一个');
             if ($userInfo->is_promoter) throw new ValidateException('您已经是分销员了');
         }
-
         //立即购买 限购
         if ($data['is_new']) {
             $cart_num = $data['cart_num'];
@@ -1855,6 +1962,7 @@ class ProductRepository extends BaseRepository
         if (!$data['is_new']) {
             $cart = app()->make(StoreCartRepository::class)->getCartByProductSku($data['product_attr_unique'], $userInfo->uid);
         }
+
         return compact('product', 'sku', 'cart');
     }
 
@@ -1894,12 +2002,17 @@ class ProductRepository extends BaseRepository
     public function cartSeckillCheck(array $data, $userInfo)
     {
         if ($data['is_new'] !== 1) throw new ValidateException('秒杀商品不能加入购物车');
-        if ($data['cart_num'] !== 1) throw new ValidateException('秒杀商品只能购买一个');
+//        if ($data['cart_num'] !== 1) throw new ValidateException('秒杀商品只能购买一个');
 
         $where = $this->dao->seckillShow();
         $where['product_id'] = $data['product_id'];
         $product = $this->dao->search(null, $where)->find();
         if (!$product) throw new ValidateException('商品已下架');
+        $storeOrderRepository = app()->make(StoreOrderRepository::class);
+        if (!$storeOrderRepository->getDayPayCount($userInfo->uid, $product['product_id'],$data['cart_num']))
+            throw new ValidateException('本次活动您购买数量已达到上限');
+        if (!$storeOrderRepository->getPayCount($userInfo->uid, $product['product_id'],$data['cart_num']))
+            throw new ValidateException('本次活动您该商品购买数量已达到上限');
         if ($product->seckill_status !== 1) throw new ValidateException('该商品不在秒杀时间段内');
         $order_make = app()->make(StoreOrderRepository::class);
         $count = $order_make->seckillOrderCounut($data['product_id']);
@@ -1911,11 +2024,6 @@ class ProductRepository extends BaseRepository
         $_sku = $value_make->getWhere(['sku' => $sku['sku'], 'product_id' => $product['old_product_id']]);
         if (!$_sku) throw new ValidateException('原商品SKU不存在');
         if ($_sku['stock'] <= 0) throw new ValidateException('原库存不足');
-
-        if (!$order_make->getDayPayCount($userInfo->uid, $data['product_id']))
-            throw new ValidateException('本次活动您购买数量已达到上限');
-        if (!$order_make->getPayCount($userInfo->uid, $data['product_id']))
-            throw new ValidateException('本次活动您该商品购买数量已达到上限');
         $cart = null;
         return compact('product', 'sku', 'cart');
     }
@@ -2075,7 +2183,8 @@ class ProductRepository extends BaseRepository
             $product['final_end_time'] =  $data['final_end_time'];
             $productType = 2;
         }
-
+        if (isset($data['params']))
+            $product['params'] = $data['params'];
         if(isset($data['assist_count'])){
             //助力
             $product['assist_count'] = $data['assist_count'];
@@ -2149,10 +2258,14 @@ class ProductRepository extends BaseRepository
         switch($data['product_type'])
         {
             case 0:
-                return $this->apiProductDetail(['product_id' => $data['id']], 0, 0);
+                $product = $this->apiProductDetail(['product_id' => $data['id']], 0, 0)->toArray();
+                $res = $this->getProductShow($data['id'],$product, null, 0);
+                $ret = array_merge($product,$res);
                 break;
             case 1:
-                $ret = $this->apiProductDetail(['product_id' => $data['id']], 1, 0);
+                $product = $this->apiProductDetail(['product_id' => $data['id']], 1, 0)->toArray();
+                $res = $this->getProductShow($data['id'],$product, null, 0);
+                $ret = array_merge($product,$res);
                 $ret['stop'] = time() + 3600;
                 break;
             case 2:
@@ -2162,14 +2275,15 @@ class ProductRepository extends BaseRepository
                 $ret['ot_price'] = $ret['price'];
                 $ret['start_time'] = $res['start_time'];
                 $ret['p_end_time'] = $res['end_time'];
-                $ret = array_merge($ret,$res);
+                $show = $this->getProductShow($res['product_id'],$ret,$res['product_presell_id'],2);
+                $ret = array_merge($ret,$show);
                 break;
             case 3:
                 $make = app()->make(ProductAssistRepository::class);
                 $res = $make->getWhere([$make->getPk()=> $data['id']])->toArray();
                 $ret = $this->apiProductDetail(['product_id' => $res['product_id']], 3, $data['id'])->toArray();
-
-                $ret = array_merge($ret,$res);
+                $show = $this->getProductShow($res['product_id'],$ret,$res['product_assist_id'],3);
+                $ret = array_merge($ret,$show);
                 foreach ($ret['sku'] as $value){
                     $ret['price'] = $value['price'];
                     $ret['stock'] = $value['stock'];
@@ -2180,7 +2294,8 @@ class ProductRepository extends BaseRepository
                 $res = $make->get($data['id'])->toArray();
                 $ret = $this->apiProductDetail(['product_id' => $res['product_id']], 4, $data['id'])->toArray();
                 $ret['ot_price'] = $ret['price'];
-                $ret = array_merge($ret,$res);
+                $show = $this->getProductShow($res['product_id'],$ret,$res['product_group_id'],4);
+                $ret = array_merge($ret,$show);
                 break;
             default:
                 break;
@@ -2247,9 +2362,9 @@ class ProductRepository extends BaseRepository
         if (!$count) throw new ValidateException('平台分类不存在或不可用');
         app()->make(StoreProductValidate::class)->check($data);
         $data['extend'] = $extend ?? [];
-        //单次限购
         return $data;
     }
+
 
 
     public function isFormatAttr(array $data, int $productId, $productType = 0)
@@ -2266,25 +2381,14 @@ class ProductRepository extends BaseRepository
         }
         $valueNew = [];
         $count = 0;
-        $attr = attr_format($data)[1];
-        foreach ($attr as $item) {
-            $detail = $item['detail'];
-//            sort($item['detail'], SORT_STRING);
-            $suk = implode(',', $item['detail']);
-            foreach (array_keys($detail) as $k => $title) {
-                if ($title == '') continue;
-                $header[$k]['title'] = $title;
-                $header[$k]['align'] = 'center';
-                $header[$k]['minWidth'] = 120;
-            }
-            foreach (array_values($detail) as $k => $v) {
-                if ($v == '') continue;
+        [$attr, $head] = attr_format($data);
+        foreach ($attr as $suk) {
+            $detail = explode(',',$suk);
+            foreach ($detail as $k => $v) {
                 $valueNew[$count]['value' . ($k + 1)] = $v;
-                $header[$k]['key'] = 'value' . ($k + 1);
             }
-
             $valueNew[$count]['sku']    = $suk;
-            $valueNew[$count]['detail'] = $detail;
+            $valueNew[$count]['detail'] = array_combine($head, $detail);
             $valueNew[$count]['image']  = $sukValue[$suk]['image'] ?? '';
             $valueNew[$count]['price']  = $sukValue[$suk]['price'] ?? 0;
             $valueNew[$count]['cost']   = $sukValue[$suk]['cost'] ?? 0;
@@ -2292,23 +2396,13 @@ class ProductRepository extends BaseRepository
             $valueNew[$count]['bar_code']   = $sukValue[$suk]['bar_code'] ?? '';
             $valueNew[$count]['weight']     = $sukValue[$suk]['weight'] ?? 0;
             $valueNew[$count]['volume']     = $sukValue[$suk]['volume'] ?? 0;
-            $valueNew[$count]['brokerage']  = $sukValue[$suk]['brokerage'] ?? 0;
             $valueNew[$count]['ot_price']   = $sukValue[$suk]['ot_price'] ?? 0;
             $valueNew[$count]['svip_price']   = $sukValue[$suk]['svip_price'] ?? 0;
-            $valueNew[$count]['cdkey']      = $sukValue[$suk]['cdkey'] ?? [];
-            $valueNew[$count]['brokerage_two'] = $sukValue[$suk]['brokerage_two'] ?? 0;
-
+            $valueNew[$count]['cdkey']       = $sukValue[$suk]['cdkey'] ?? [];
+            $valueNew[$count]['extension_one']  = $sukValue[$suk]['extension_one'] ?? 0;
+            $valueNew[$count]['extension_two'] = $sukValue[$suk]['extension_two'] ?? 0;
             $count++;
         }
-        $header[] = ['title' => '图片', 'slot' => 'image', 'align' => 'center', 'minWidth' => 80];
-        $header[] = ['title' => '售价', 'slot' => 'price', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '成本价', 'slot' => 'cost', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '原价', 'slot' => 'ot_price', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '库存', 'slot' => 'stock', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '商品编号', 'slot' => 'bar_code', 'align' => 'center', 'minWidth' => 120];
-        $header[] = ['title' => '重量(KG)', 'slot' => 'weight', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '体积(m³)', 'slot' => 'volume', 'align' => 'center', 'minWidth' => 95];
-        $header[] = ['title' => '操作', 'slot' => 'action', 'align' => 'center', 'minWidth' => 70];
-       return ['attr' => $data, 'value' => $valueNew, 'header' => $header];
+       return ['attr' => $data, 'value' => $valueNew];
     }
 }

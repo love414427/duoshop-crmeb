@@ -66,6 +66,7 @@ class Obs extends BaseUpload
     protected $thumb_rate;
 
     protected $cdn;
+    protected $upload_max_size;
 
     /**
      * 初始化
@@ -83,6 +84,7 @@ class Obs extends BaseUpload
         $this->cdn = $config['cdn'] ?? null;
         $this->thumb_status = $config['thumb_status'];
         $this->thumb_rate = $config['thumb_rate'];
+        $this->upload_max_size = $config['upload_max_size'];
     }
 
     /**
@@ -111,6 +113,7 @@ class Obs extends BaseUpload
     public function move(string $file = 'file', $thubm = true)
     {
         $fileHandle = app()->request->file($file);
+        if ($this->upload_max_size && $fileHandle->getSize() < $this->upload_max_size) $this->thumb_status = false;
         if (!$fileHandle) {
             return $this->setError('Upload file does not exist');
         }
@@ -126,11 +129,12 @@ class Obs extends BaseUpload
             $uploadInfo = $this->app()->putObject(
                 [
                     'Bucket' => $this->storageName,
+                    // 如果需要上传到指定文件夹，这里可以增加名字 如： crmeb/1.jpg 就是 'Key' => 'crmeb/'.$key,
                     'Key' => $key,
                     'SourceFile' => $fileHandle->getRealPath()
                 ]);
 
-             //   $this->storageName, $key, $fileHandle->getRealPath()); ObjectURL   HttpStatusCode
+             // $this->storageName, $key, $fileHandle->getRealPath()); ObjectURL   HttpStatusCode
             if (!isset($uploadInfo['HttpStatusCode'])) {
                 return $this->setError('Upload failure_obs');
             }

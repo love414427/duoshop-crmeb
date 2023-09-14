@@ -106,6 +106,8 @@ Route::group(function () {
         '_path' => '/setting/diy/merchant/category/list',
         '_auth' => true,
     ])->append(['type' => 1]);
+    //装修获取路由列表
+    Route::get('diy/link/list', 'admin.system.diy.PageLink/lst');
 
     //平台管理
     Route::group('diy/link', function () {
@@ -132,7 +134,9 @@ Route::group(function () {
         Route::delete('delete/:id', '/delete')->name('systemDiyPageLinkDelete')->option([
             '_alias' => '删除',
         ]);
-
+        Route::post('status/:id', '/switchStatus')->name('systemDiyPageLinkStatus')->option([
+            '_alias' => '修改状态',
+        ]);
         Route::get('getLinks/:id', '/getLinks')->option([
             '_alias' => '列表',
             '_auth' => false,
@@ -165,7 +169,9 @@ Route::group(function () {
         Route::delete('delete/:id', '/delete')->name('systemDiyPageLinkMerDelete')->option([
             '_alias' => '删除',
         ]);
-
+        Route::post('status/:id', '/switchStatus')->name('systemDiyPageLinkMerStatus')->option([
+            '_alias' => '修改状态',
+        ]);
     })->prefix('admin.system.diy.PageLink')->option([
         '_path' => '/setting/diy/merLink/list',
         '_auth' => true,
@@ -177,27 +183,21 @@ Route::group(function () {
         Route::get('lst', 'Diy/lst')->name('systemDiyLst')->option([
             '_alias' => '列表 ',
         ]);
-
-        Route::get('detail/:id', 'Diy/getInfo')->name('systemDiyLst')->option([
-            '_alias' => '列表 ',
+        Route::get('detail/:id', 'Diy/getInfo')->name('systemDiyDetail')->option([
+            '_alias' => '详情 ',
         ]);
-
         Route::post('create/:id', 'Diy/saveData')->name('systemDiyCreate')->option([
             '_alias' => '添加/编辑',
         ]);
-
         Route::post('status/:id', 'Diy/setStatus')->name('systemDiyStatus')->option([
             '_alias' => '使用模板',
         ]);
-
         Route::post('set_default_data/:id', 'Diy/setDefaultData')->name('systemDiySetDefault')->option([
             '_alias' => '设置默认',
         ]);
-
         Route::get('recovery/:id', 'Diy/recovery/')->name('systemDiyRecovery')->option([
             '_alias' => '重置',
         ]);
-
         Route::delete('delete/:id', 'Diy/del')->name('systemDiyDelete')->option([
             '_alias' => '删除',
         ]);
@@ -207,7 +207,6 @@ Route::group(function () {
         Route::get('copy/:id', 'Diy/copy')->name('systemDiyCopy')->option([
             '_alias' => '复制',
         ]);
-
         Route::get('user_index', 'VisualConfig/userIndex')->name('systemVisualUserInfo')->option([
             '_alias' => '个人中心装修',
         ]);
@@ -274,7 +273,6 @@ Route::group(function () {
     ]);
 
     Route::group('micro/', function () {
-
         Route::get('lst', 'Diy/lst')->name('systemDiyMicroLst')->option([
             '_alias' => '列表 ',
         ]);
@@ -309,6 +307,55 @@ Route::group(function () {
         ]
     ])
         ->append(['is_diy' => 0]);
+
+    //商户默认模板操作
+    Route::group('mer_diy', function () {
+        Route::get('lst', 'Diy/lst')->name('systemMerDiyLst')->option([
+            '_alias' => '列表 ',
+        ]);
+        Route::get('detail/:id', 'Diy/getInfo')->name('systemMerDiyDetail')->option([
+            '_alias' => '详情 ',
+        ]);
+        Route::post('create/:id', 'Diy/saveData')->name('systemMerDiyCreate')->option([
+            '_alias' => '添加/编辑',
+        ])->append(['is_default' => 1]);
+
+        Route::post('set_default_data/:id', 'Diy/setDefaultData')->name('systemMerDiySetDefault')->option([
+            '_alias' => '设置默认',
+        ]);
+        Route::get('recovery/:id', 'Diy/recovery/')->name('systemMerDiyRecovery')->option([
+            '_alias' => '重置',
+        ]);
+        Route::delete('delete/:id', 'Diy/del')->name('systemMerDiyDelete')->option([
+            '_alias' => '删除',
+        ]);
+        Route::get('copy/:id', 'Diy/copy')->name('systemMerDiyCopy')->option([
+            '_alias' => '复制',
+        ]);
+        Route::get('scope/:id', 'Diy/getScope')->name('systemMerDiyGetScope')->option([
+            '_alias' => '保存适用范围',
+        ]);
+        Route::post('scope/:id', 'Diy/setScope')->name('systemMerDiySetScope')->option([
+            '_alias' => '保存适用范围',
+        ]);
+    })->prefix('admin.system.diy.')->option([
+        '_path' => '/setting/merchant/diyList',
+        '_auth' => true,
+        '_append'=> [
+            [
+                '_name'  =>'uploadImage',
+                '_path'  =>'/setting/diy/list',
+                '_alias' => '上传图片',
+                '_auth'  => true,
+            ],
+            [
+                '_name'  =>'systemAttachmentLst',
+                '_path'  =>'/setting/diy/list',
+                '_alias' => '图片列表',
+                '_auth'  => true,
+            ],
+        ]
+    ])->append(['type' => 2]);
 
     })->middleware(AllowOriginMiddleware::class)
     ->middleware(AdminTokenMiddleware::class, true)

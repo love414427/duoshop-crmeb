@@ -21,6 +21,7 @@ use crmeb\exceptions\AuthException;
 use crmeb\services\JwtTokenService;
 use FormBuilder\Exception\FormBuilderException;
 use FormBuilder\Factory\Elm;
+use FormBuilder\Factory\Iview;
 use FormBuilder\Form;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
@@ -109,8 +110,8 @@ class StoreServiceRepository extends BaseRepository
         $adminRule[] = Elm::number('sort', '排序', 0)->precision(0)->max(99999);
         $prefix = $merId ? config('admin.merchant_prefix') : config('admin.admin_prefix');
         return Elm::createForm(Route::buildUrl('merchantServiceCreate')->build(), array_merge([
-            Elm::frameImage('uid', '用户', '/' . $prefix . '/setting/userList?field=uid&type=1')->prop('srcKey', 'src')->width('675px')->height('500px')->modal(['modal' => false]),
-            Elm::frameImage('avatar', '客服头像', '/' . $prefix . '/setting/uploadPicture?field=avatar&type=1')->width('896px')->height('480px')->props(['footer' => false])->modal(['modal' => false]),
+            Elm::frameImage('uid', '用户', '/' . $prefix . '/setting/userList?field=uid&type=1')->prop('srcKey', 'src')->width('1000px')->height('600px')->appendValidate(Iview::validateStr()->message('请选择用户')->required())->modal(['modal' => false]),
+            Elm::frameImage('avatar', '客服头像', '/' . $prefix . '/setting/uploadPicture?field=avatar&type=1')->width('1000px')->height('600px')->props(['footer' => false])->modal(['modal' => false]),
             Elm::input('nickname', '客服昵称')->required(),
             Elm::input('account', '客服账号')->required(),
             $pwd, $confirm_pwd,

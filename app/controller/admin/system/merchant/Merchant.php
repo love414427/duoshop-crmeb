@@ -29,6 +29,7 @@ use think\App;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
+use think\facade\Db;
 use think\facade\Queue;
 
 /**
@@ -192,7 +193,7 @@ class Merchant extends BaseController
      */
     public function checkParam(MerchantValidate $validate, $isUpdate = false)
     {
-        $data = $this->request->params([['category_id', 0], ['type_id', 0], 'mer_name', 'commission_rate', 'real_name', 'mer_phone', 'mer_keyword', 'mer_address', 'mark', ['sort', 0], ['status', 0], ['is_audit', 0], ['is_best', 0], ['is_bro_goods', 0], ['is_bro_room', 0], ['is_trader', 0],'sub_mchid']);
+        $data = $this->request->params([['category_id', 0], ['type_id', 0], 'mer_name', 'commission_rate', 'real_name', 'mer_phone', 'mer_keyword', 'mer_address', 'mark', ['sort', 0], ['status', 0], ['is_audit', 0], ['is_best', 0], ['is_bro_goods', 0], ['is_bro_room', 0], ['is_trader', 0],'sub_mchid',['commission_switch',0]]);
         if (!$isUpdate) {
             $data += $this->request->params(['mer_account', 'mer_password']);
         }else {
@@ -320,6 +321,19 @@ class Merchant extends BaseController
         [$page, $limit] = $this->getPage();
         $where['margin'] = 0;
         $data = $this->repository->lst($where, $page, $limit);
+        return app('json')->success($data);
+    }
+
+    /**
+     * TODO 平台后台商户详情
+     * @param $id
+     * @return \think\response\Json
+     * @author Qinii
+     * @day 2023/7/1
+     */
+    public function detail($id)
+    {
+        $data = $this->repository->adminDetail($id);
         return app('json')->success($data);
     }
 }

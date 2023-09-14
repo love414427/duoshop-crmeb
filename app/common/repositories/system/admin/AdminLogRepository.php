@@ -54,7 +54,11 @@ class AdminLogRepository extends BaseRepository
      */
     public function lst($merId, array $where, $page, $limit)
     {
-        $query = $this->dao->search($where, $merId);
+        $query = $this->dao->search($where, $merId)->with([
+            'menu' => function($query){
+                $query->field('menu_name,route');
+            }
+        ]);
         $count = $query->count($this->dao->getPk());
         $list = $query->setOption('field', [])->field(['create_time', 'log_id', 'admin_name', 'route', 'method', 'url', 'ip', 'admin_id'])
             ->page($page, $limit)->order('create_time DESC')->select();

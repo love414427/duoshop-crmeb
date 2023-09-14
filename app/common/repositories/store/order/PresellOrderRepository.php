@@ -124,8 +124,13 @@ class PresellOrderRepository extends BaseRepository
             }
             $order->is_combine = $is_combine;
             $order->order->status = 0;
+
+            $storeOrderRepository = app()->make(StoreOrderRepository::class);
             if ($order->order->order_type == 1) {
-                $order->order->verify_code = app()->make(StoreOrderRepository::class)->verifyCode();
+                $order->order->verify_code = $storeOrderRepository->verifyCode();
+            }
+            if (empty($order->order_sn)) {
+                $order->order_sn = $storeOrderRepository->getOrderSn($order->order_id);
             }
             $order->order->save();
             $order->save();

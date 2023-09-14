@@ -64,6 +64,9 @@ class ProductAssistDao extends BaseDao
             ->when(isset($where['is_show']) && $where['is_show'] !== '',function($query)use($where){
                 $query->where('ProductAssist.is_show',$where['is_show']);
             })
+            ->when(isset($where['is_del']) && $where['is_del'] !== '',function($query)use($where){
+                $query->where('ProductAssist.is_del',$where['is_del']);
+            })
             ->when(isset($where['mer_name']) && $where['mer_name'] !== '',function($query)use($where){
                 $make = app()->make(MerchantRepository::class);
                 $mer_id = $make->search(['keyword' => $where['mer_name']])->column('mer_id');
@@ -123,7 +126,8 @@ class ProductAssistDao extends BaseDao
             'product_status' => 1,
             'status' => 1,
             'is_show' => 1,
-            'type' => 1
+            'type' => 1,
+            'is_del' => 0
         ];
     }
 

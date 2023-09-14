@@ -149,9 +149,9 @@ class GroupDataRepository extends BaseRepository
         foreach ($fields as $field) {
             $rule = null;
             if ($field['type'] == 'image') {
-                $rule = Elm::frameImage($field['field'], $field['name'], '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=' . $field['field'] . '&type=1')->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false]);
+                $rule = Elm::frameImage($field['field'], $field['name'], '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=' . $field['field'] . '&type=1')->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false]);
             } else if ($field['type'] == 'images') {
-                $rule = Elm::frameImage($field['field'], $field['name'], '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=' . $field['field'] . '&type=2')->maxLength(5)->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false]);
+                $rule = Elm::frameImage($field['field'], $field['name'], '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=' . $field['field'] . '&type=2')->maxLength(5)->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false]);
             } else if ($field['type'] == 'cate') {
                 $rule = Elm::cascader($field['field'], $field['name'])->options(function () use ($id) {
                     $storeCategoryRepository = app()->make(StoreCategoryRepository::class);
@@ -388,5 +388,31 @@ class GroupDataRepository extends BaseRepository
         $form->setRule($rules);
         if ($formData && $formData['svip_type'] == 3) $formData['svip_number'] = '永久期';
         return $form->setTitle(is_null($id) ? '添加' : '编辑')->formData($formData);
+    }
+
+
+    /**
+     * 查找组合数关联标签名称
+     * @param array $fields
+     * @param array $data
+     * @return array
+     *
+     * @date 2023/09/09
+     * @author yyw
+     */
+    public function handleDataValue(array $fields = [], array $data = [])
+    {
+        foreach ($fields as $field) {
+            switch ($field['type']) {
+                case 'label':   // 标签
+                    $data[$field['type'].'_name'] = app()->make(ProductLabelRepository::class)->getLabelName($data[$field['field']]);
+                    break;
+                case 'cate':  // 平台分类
+                    $data[$field['type'].'_name'] = app()->make(StoreCategoryRepository::class)->getCateName($data[$field['field']]);
+                    break;
+            }
+        }
+
+        return $data;
     }
 }

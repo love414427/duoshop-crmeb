@@ -77,4 +77,12 @@ class StoreOrderProduct extends BaseModel
     {
         $query->where('product_id',$value);
     }
+    public function searchRefundSwitchAttr($query,$value)
+    {
+        $query->where('refund_switch',$value);
+    }
+    public function searchRefundNumAttr($query,$value)
+    {
+        $query->where('refund_num', '>' ,$value);
+    }
 }

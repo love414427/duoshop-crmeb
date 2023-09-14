@@ -9,7 +9,6 @@
 	padding: 0 4rpx;
 	line-height: 28rpx;
 	margin-right: 8rpx;
-	border: 1px solid #E93424;
 }
 .type2{
 	background-color: #FD6523;
@@ -592,11 +591,12 @@
 .register .whiteBg .list .item .code {
 	width: 150rpx;
 	height: 50rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	background-color: #f35446;
 	border-radius: 30rpx;
 	color: #fff;
-	line-height: 50rpx;
-	text-align: center;
 	font-size: 26rpx
 }
 .register .whiteBg .list .item .code.on {
@@ -606,7 +606,6 @@
 	text-align: right;
 	font-size: 28rpx;
 	color: #666;
-	margin-top: 20rpx
 }
 .register .whiteBg .list .forgetPwd .iconfont {
 	font-size: 30rpx;
@@ -820,4 +819,63 @@
 }
 .product-con .red{
 	color: #82848f;
+}
+.pl-20{
+	padding-left: 20rpx;
+}
+.dialog_nav {
+	position: absolute;
+	left: 30rpx;
+	width: 240rpx;
+	background: #FFFFFF;
+	box-shadow: 0px 0px 16rpx rgba(0, 0, 0, 0.08);
+	z-index: 310;
+	border-radius: 14rpx;
+	&::before {
+		content: '';
+		width: 0;
+		height: 0;
+		position: absolute;
+		left: 0;
+		right: 0;
+		margin: auto;
+		top: -9px;
+		border-bottom: 26rpx solid #FFFFFF;
+		border-left: 26rpx solid transparent;
+		/*transparent 表示透明*/
+		border-right: 26rpx solid transparent;
+	}
+}
+.dialog_nav_item {
+	width: 100%;
+	height: 84rpx;
+	line-height: 84rpx;
+	padding: 0 20rpx 0;
+	box-sizing: border-box;
+	font-size: 28rpx;
+	color: #333;
+	position: relative;
+	.iconfont {
+		font-size: 32rpx;
+	}
+}
+.dialog_after {
+	::after {
+		content: '';
+		position: absolute;
+		width: 172rpx;
+		height: 2rpx;
+		background: #EEEEEE;
+		bottom: 0;
+		right: 0;
+	}
+}
+.mask_transparent {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: transparent;
+	z-index: 300;
 }

@@ -80,6 +80,21 @@ class DownloadImageService
         return $date;
     }
 
+    public function downloadImages($urls, $path = 'def',$upload_type = null)
+    {
+        if ($urls) {
+            try{
+                foreach ($urls as $url) {
+                    $res[] = $this->downloadImage($url,$path,'',$upload_type);
+                }
+                return $res;
+            }catch (\Exception $exception) {
+                throw new ValidateException($exception->getMessage());
+            }
+        }
+        return [];
+    }
+
     /**
      * @param $name
      * @param $arguments

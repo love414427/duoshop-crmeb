@@ -117,7 +117,7 @@ class ProductGroupDao extends  BaseDao
             'action_status' => 1,
             'product_status' => 1,
             'status' => 1,
-            'end_time' => time()
+            'end_time' => time(),
         ];
     }
 

@@ -23,7 +23,7 @@ use think\App;
 class Order extends BaseController
 {
     protected $repository;
-
+    protected $isSpread;
     public function __construct(App $app, repository $repository)
     {
         parent::__construct($app);
@@ -36,6 +36,7 @@ class Order extends BaseController
         [$page, $limit] = $this->getPage();
         $where = $this->request->params(['date','order_sn','order_type','keywords','username','activity_type','group_order_sn','store_name','filter_delivery','filter_product']);
         $where['mer_id'] = $id;
+        $where['is_spread'] = $this->request->param('is_spread','');
         return app('json')->success($this->repository->adminMerGetList($where, $page, $limit));
     }
 
@@ -58,6 +59,7 @@ class Order extends BaseController
     public function title()
     {
         $where = $this->request->params(['type', 'date', 'mer_id','keywords','status','username','order_sn','is_trader','activity_type','filter_delivery','filter_product']);
+        $where['is_spread'] = $this->request->param('is_spread',0);
         return app('json')->success($this->repository->getStat($where, $where['status']));
     }
     /**
@@ -69,7 +71,10 @@ class Order extends BaseController
     public function getAllList()
     {
         [$page, $limit] = $this->getPage();
-        $where = $this->request->params(['type', 'date', 'mer_id','keywords','status','username','order_sn','is_trader','activity_type','group_order_sn','store_name']);
+        $where = $this->request->params(['type', 'date', 'mer_id','keywords','status','username','order_sn','is_trader','activity_type','group_order_sn','store_name','spread_name','top_spread_name','filter_delivery','filter_product']);
+        $pay_type = $this->request->param('pay_type','');
+        if ($pay_type != '') $where['pay_type'] = $this->repository::PAY_TYPE_FILTEER[$pay_type];
+        $where['is_spread'] = $this->request->param('is_spread',0);
         $data = $this->repository->adminGetList($where, $page, $limit);
         return app('json')->success($data);
     }
@@ -110,6 +115,17 @@ class Order extends BaseController
     public function chart()
     {
         return app('json')->success($this->repository->OrderTitleNumber(null,null));
+    }
+
+    /**
+     * TODO 分销订单头部统计
+     * @return \think\response\Json
+     * @author Qinii
+     * @day 2023/7/7
+     */
+    public function spreadChart()
+    {
+        return app('json')->success($this->repository->OrderTitleNumber(null,2));
     }
 
     /**

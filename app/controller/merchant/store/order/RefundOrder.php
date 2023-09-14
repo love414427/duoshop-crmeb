@@ -14,12 +14,15 @@ namespace app\controller\merchant\store\order;
 
 use app\common\repositories\store\ExcelRepository;
 use app\common\repositories\store\order\MerchantReconciliationRepository;
+use app\common\repositories\store\order\StoreOrderProductRepository;
+use app\common\repositories\store\order\StoreOrderRepository;
 use app\common\repositories\store\order\StoreOrderStatusRepository;
 use app\common\repositories\store\order\StoreRefundStatusRepository;
 use crmeb\services\ExcelService;
 use think\App;
 use crmeb\basic\BaseController;
 use app\common\repositories\store\order\StoreRefundOrderRepository as repository;
+use think\exception\ValidateException;
 
 class RefundOrder extends BaseController
 {
@@ -41,6 +44,67 @@ class RefundOrder extends BaseController
     }
 
     /**
+     * TODO 获取可退款的商品信息
+     * @param $id
+     * @param StoreOrderRepository $storeOrderRepository
+     * @param StoreOrderProductRepository $orderProductRepository
+     * @return \think\response\Json
+     * @author Qinii
+     * @day 2023/7/13
+     */
+    public function check($id, StoreOrderRepository $storeOrderRepository, StoreOrderProductRepository $orderProductRepository)
+    {
+        $order = $storeOrderRepository->getSearch(['mer_id' => $this->request->merId()])->where('order_id',$id)->find();
+        if (!$order) return app('json')->fail('订单状态有误');
+        if (!$order->refund_status) return app('json')->fail('订单已过退款/退货期限');
+        if ($order->status < 0) return app('json')->fail('订单已退款');
+        if ($order->status == 10) return app('json')->fail('订单不支持退款');
+        $product = $orderProductRepository->userRefundProducts([],0,$id,0);
+        $total_refund_price = $this->repository->getRefundsTotalPrice($order,$product,0);
+        $activity_type = $order->activity_type;
+        $status = (!$order->status || $order->status == 9) ? 0 : $order->status;
+        $postage_price = 0;
+        return app('json')->success(compact('activity_type', 'total_refund_price','postage_price', 'product', 'status'));
+    }
+
+    public function compute(StoreOrderRepository $storeOrderRepository)
+    {
+        $refund = $this->request->param('refund',[]);
+        $orderId = $this->request->param('order_id',0);
+        $order = $storeOrderRepository->getSearch(['mer_id' => $this->request->merId()])->where('order_id',$orderId)->find();
+        if (!$order) return app('json')->fail('订单状态有误');
+        if (!$order->refund_status) return app('json')->fail('订单已过退款/退货期限');
+        if ($order->status < 0) return app('json')->fail('订单已退款');
+        if ($order->status == 10) return app('json')->fail('订单不支持退款');
+        $totalRefundPrice = $this->repository->compute($order,$refund);
+        return app('json')->success(compact('totalRefundPrice'));
+    }
+
+    /**
+     * TODO 创建退款单，并执行退款操作
+     * @param StoreOrderRepository $storeOrderRepository
+     * @return \think\response\Json
+     * @author Qinii
+     * @day 2023/7/13
+     */
+    public function create(StoreOrderRepository $storeOrderRepository)
+    {
+        $data = $this->request->params(['refund_message','refund_price','mer_mark']);
+        $refund = $this->request->param('refund',[]);
+        $orderId = $this->request->param('order_id',02);
+        $order = $storeOrderRepository->getSearch(['mer_id' => $this->request->merId()])->where('order_id',$orderId)->find();
+        if (!$order) return app('json')->fail('订单状态有误');
+        if (!$order->refund_status) return app('json')->fail('订单已过退款/退货期限');
+        if ($order->status < 0) return app('json')->fail('订单已退款');
+        if ($order->status == 10) return app('json')->fail('订单不支持退款');
+        $data['refund_type'] = 1;
+        $data['admin_id'] =  $this->request->adminId();
+        $data['user_type'] =  $this->request->userType();
+        $refund = $this->repository->merRefund($order,$refund,$data);
+        return app('json')->success('退款成功',['refund_order_id' => $refund->refund_order_id]);
+    }
+
+    /**
      * @return mixed
      * @author Qinii
      * @day 2020-06-12
@@ -48,7 +112,7 @@ class RefundOrder extends BaseController
     public function lst()
     {
         list($page,$limit) = $this->getPage();
-        $where = $this->request->params(['refund_order_sn','status','refund_type','date','order_sn','id','delivery_id']);
+        $where = $this->request->params(['refund_order_sn','status','refund_type','date','order_sn','id','delivery_id','user_type','username']);
         $where['mer_id'] = $this->request->merId();
         return app('json')->success($this->repository->getList($where,$page,$limit));
     }

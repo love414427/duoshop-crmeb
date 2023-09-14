@@ -60,4 +60,53 @@ class CityAreaRepository extends BaseRepository
         ]);
         return $form->setTitle($id ? '编辑城市' : '添加城市')->formData($formData);
     }
+
+    /**
+     * TODO 添加
+     * @param $name
+     * @param $pid
+     * @param $lv
+     * @return mixed
+     * @author Qinii
+     * @day 2023/8/2
+     */
+    public function treeCreate($name,$code, $pid = 0, $lv = 1)
+    {
+        $type = [
+            1 => 'province',
+            2 => 'city',
+            3 => 'area',
+            4 => 'street',
+        ];
+        $path = '/';
+        if ($pid){
+            $res =  $this->dao->get($pid);
+            $path = $res['path'].$res['id'].'/';
+        }
+        $data = [
+            'type' => $type[$lv],
+            'parent_id' => $pid,
+            'level' => $lv,
+            'name' => $name,
+            'path'=> $path,
+            'code' => $code
+        ];
+        $result =  $this->dao->findOrCreate($data);
+        return $result->id;
+    }
+
+    /**
+     * TODO 计算子集个数
+     * @author Qinii
+     * @day 2023/8/2
+     */
+    public function sumChildren()
+    {
+        $data = $this->dao->getSearch([])->where('level','<',4)->select();
+        foreach ($data as $datum) {
+            $snum = $this->dao->getSearch([])->where('parent_id',$datum->id)->count();
+            $datum->snum = $snum;
+            $datum->save();
+        }
+    }
 }

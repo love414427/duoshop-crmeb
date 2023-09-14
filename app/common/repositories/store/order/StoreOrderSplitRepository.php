@@ -82,10 +82,10 @@ class StoreOrderSplitRepository extends StoreOrderRepository
                 }
                 $num = (int)$rule[$product['order_product_id']];
                 if ($num <= 0) {
-                    throw new ValidateException('拆单数必须大于0');
+                    throw new ValidateException('数量必须大于0');
                 }
                 if ($num > $product['refund_num']) {
-                    throw new ValidateException('商品超出最大拆单数');
+                    throw new ValidateException('商品超出最大数量');
                 }
                 if ($num != $product['refund_num']) {
                     $flag = true;

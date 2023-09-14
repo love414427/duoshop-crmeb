@@ -19,6 +19,7 @@ use app\common\repositories\store\product\SpuRepository;
 use app\common\repositories\store\StoreCategoryRepository;
 use think\db\BaseQuery;
 use think\db\exception\DbException;
+use think\Exception;
 use think\facade\Db;
 
 class ProductDao extends BaseDao
@@ -108,6 +109,7 @@ class ProductDao extends BaseDao
      */
     public function search(?int $merId, array $where)
     {
+
         $keyArray = $whereArr = [];
         $out = ['soft','us_status','mer_labels','sys_labels','order','hot_type','is_action'];
         foreach ($where as $key => $item) {
@@ -116,13 +118,14 @@ class ProductDao extends BaseDao
                 $whereArr[$key] = $item;
             }
         }
-        $query = isset($where['soft']) ? model::onlyTrashed()->alias('Product') : model::alias('Product');
+        $query = isset($where['soft']) ? model::onlyTrashed()->alias('Product')->where('delete',0) : model::alias('Product');
         if (isset($where['is_trader']) && $where['is_trader'] !== '') {
             $query->hasWhere('merchant', function ($query) use ($where) {
                 $query->where('is_trader', $where['is_trader']);
             });
         }
         $query->withSearch($keyArray, $whereArr)->Join('StoreSpu U', 'Product.product_id = U.product_id')->where('U.product_type', $where['product_type'] ?? 0);
+
         $query->when(($merId !== null), function ($query) use ($merId) {
                 $query->where('Product.mer_id', $merId);
             })
@@ -244,9 +247,12 @@ class ProductDao extends BaseDao
 
     public function destory(int $id)
     {
-        ($this->getModel()::find($id))->force()->delete();
-        app()->make(SpuRepository::class)->getSearch(['product_id' => $id])->delete();
-        event('product.delete',compact('id'));
+        try{
+            $this->getModel()::withTrashed()->where('product_id',$id)->update(['delete' => 1]);
+            app()->make(SpuRepository::class)->getSearch(['product_id' => $id])->delete();
+            event('product.delete',compact('id'));
+        }catch (Exception $e) {}
+
     }
 
     /**
@@ -338,6 +344,20 @@ class ProductDao extends BaseDao
     {
         model::getDB()->where('product_id', $productId)->inc('stock', $inc)->update();
         model::getDB()->where('product_id', $productId)->where('sales', '>=', $inc)->dec('sales', $inc)->update();
+    }
+
+    public function descSales(int $productId, int $desc)
+    {
+        return model::getDB()->where('product_id', $productId)->update([
+            'sales' => Db::raw('sales-' . $desc)
+        ]);
+    }
+
+    public function incSales(int $productId, int $inc)
+    {
+        return model::getDB()->where('product_id', $productId)->update([
+            'sales' => Db::raw('sales+' . $inc)
+        ]);
     }
 
     public function descIntegral(int $productId, $integral_total, $integral_price_total)
@@ -605,6 +625,23 @@ class ProductDao extends BaseDao
                     if ($item['is_show'] && $item['action_status'] && $item['status'] && $item['product_status']) $status = 1;
                     $ret[] = [
                         'activity_id' => $item['product_group_id'],
+                        'product_id' => $item['product_id'],
+                        'mer_id' => $item['mer_id'],
+                        'keyword' => $item['keyword'],
+                        'price' => $item['price'],
+                        'rank' => $item['rank'],
+                        'sort' => $item['sort'],
+                        'image' => $item['image'],
+                        'status' => $status,
+                        'temp_id' => $item['temp_id'],
+                        'store_name' => $item['store_name'],
+                        'product_type' => $item['product_type'],
+                    ];
+                    break;
+                default:
+                    if ($item['is_show'] && $item['is_used']) $status = 1;
+                    $ret[] = [
+                        'activity_id' => 0,
                         'product_id' => $item['product_id'],
                         'mer_id' => $item['mer_id'],
                         'keyword' => $item['keyword'],

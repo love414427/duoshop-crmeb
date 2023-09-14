@@ -18,6 +18,7 @@ use app\common\dao\BaseDao;
 use app\common\model\BaseModel;
 use app\common\model\store\order\StoreOrder;
 use app\common\model\store\order\StoreRefundOrder;
+use app\common\model\user\User;
 use app\common\repositories\system\merchant\MerchantRepository;
 use think\db\BaseQuery;
 use think\db\exception\DbException;
@@ -72,8 +73,13 @@ class StoreRefundOrderDao extends BaseDao
             $query->where('order_id', $where['order_id']);
         })->when(isset($where['delivery_id']) && $where['delivery_id'] !== '', function ($query) use ($where) {
             $query->where('StoreRefundOrder.delivery_id', $where['delivery_id']);
-        })->order('StoreRefundOrder.create_time DESC');
-        return $query;
+        })->when(isset($where['user_type']) && $where['user_type'] !== '', function ($query) use ($where) {
+            $query->where('StoreRefundOrder.user_type', $where['user_type']);
+        })->when(isset($where['username']) && $where['username'] !== '', function ($query) use ($where) {
+            $uid = User::whereLike('nickname|phone|real_name',"{$where['username']}")->column('uid');
+            $query->whereIn('uid',$uid);
+        });
+        return $query->order('StoreRefundOrder.create_time DESC');
     }
 
     /**
@@ -90,7 +96,7 @@ class StoreRefundOrderDao extends BaseDao
                 $query->field('uid,nickname,phone');
             },
             'order.orderProduct'
-            ])->find();
+            ])->find()->append(['create_user']);
     }
 
     /**

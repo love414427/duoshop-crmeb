@@ -28,7 +28,7 @@ class PageLinkRepository extends BaseRepository
 
     public function getList(array $where, int $page, int $limit)
     {
-        $query = $this->dao->getSearch($where)->with(['category'])->order('add_time DESC');
+        $query = $this->dao->getSearch($where)->with(['category'])->order('sort DESC');
         $count = $query->count();
         $list = $query->page($page, $limit)->select();
         return compact('count','list');
@@ -38,7 +38,6 @@ class PageLinkRepository extends BaseRepository
     {
         if ($id) {
             $formData = $this->dao->get($id)->toArray();
-
             $form = Elm::createForm(Route::buildUrl($isMer ? 'systemDiyPageLinkMerUpdate' : 'systemDiyPageLinkUpdate', ['id' => $id])->build());
         } else {
             $form = Elm::createForm(Route::buildUrl($isMer ? 'systemDiyPageLinkMerCreate': 'systemDiyPageLinkCreate')->build());

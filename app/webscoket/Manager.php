@@ -23,6 +23,7 @@ use Swoole\Websocket\Frame;
 use think\Config;
 use think\Event;
 use think\facade\Cache;
+use think\facade\Log;
 use think\Request;
 use think\response\Json;
 use think\swoole\Websocket;
@@ -187,7 +188,6 @@ class Manager extends Websocket
     {
         $info = Cache::get('_ws_f_' . $frame->fd);
         $result = json_decode($frame->data, true) ?: [];
-
         if (!isset($result['type']) || !$result['type']) return true;
         $this->refresh($info['type'], $frame->fd, $info['uid']);
         if (($info['mer_id'] ?? null) !== null) {

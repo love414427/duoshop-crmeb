@@ -184,8 +184,8 @@ class ConfigOthers extends BaseController
                                             Elm::frameImage('watermark_image', '水印图片', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=watermark_image&type=1')
                                                 ->value($formData['watermark_image'] ?? '')
                                                 ->modal(['modal' => false])
-                                                ->width('896px')
-                                                ->height('480px'),
+                                                ->width('1000px')
+                                                ->height('600px'),
                                             Elm::number('watermark_opacity','水印图片透明度')->required(),
                                             Elm::number('watermark_rotate','水印图片倾斜度')->required(),
                                         ]

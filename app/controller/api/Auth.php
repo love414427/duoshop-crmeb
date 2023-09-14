@@ -451,7 +451,7 @@ class Auth extends BaseController
                     $userInfoCong = $miniProgramService->getUserInfo($code);
                     Cache::set('eb_api_code_' . $code, $userInfoCong, 86400);
                 } catch (Exception $e) {
-                    throw new ValidateException('获取session_key失败，请检查您的配置！');
+                    throw new ValidateException('获取session_key失败，请检查您的配置！'.$e->getMessage());
                 }
             }
             try {

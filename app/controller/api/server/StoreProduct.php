@@ -189,8 +189,8 @@ class StoreProduct extends BaseController
     {
         if (!$this->repository->merDeleteExists($this->merId, $id))
             return app('json')->fail('只能删除回收站的商品');
-        if (app()->make(StoreCartRepository::class)->getProductById($id))
-            return app('json')->fail('商品有被加入购物车不可删除');
+//        if (app()->make(StoreCartRepository::class)->getProductById($id))
+//            return app('json')->fail('商品有被加入购物车不可删除');
         $this->repository->destory($id);
         return app('json')->success('删除成功');
     }

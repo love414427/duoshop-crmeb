@@ -20,8 +20,10 @@ use think\Service;
  */
 class AppService extends Service
 {
+
     public function register()
     {
+        defined('TOP_PRECISION') || define('TOP_PRECISION', 2);
         // 服务注册
     }
 

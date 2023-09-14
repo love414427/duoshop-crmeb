@@ -22,6 +22,7 @@ use app\common\repositories\user\UserVisitRepository;
 use app\webscoket\handler\UserHandler;
 use app\webscoket\Manager;
 use crmeb\interfaces\ListenerInterface;
+use crmeb\jobs\SendNewsJob;
 use crmeb\jobs\SendSmsJob;
 use Swoole\Server;
 use Swoole\Server\Task;
@@ -87,14 +88,25 @@ class SwooleTaskListen implements ListenerInterface
         }
         if (!$flag) {
             //TODO 客服消息提醒
-            $user = app()->make(UserRepository::class)->get($data['data']['uid']);
-            $params = [
-                'mer_id' => $data['data']['mer_id'],
-                'keyword1' => date('Y-m-d H:i:s',time()),
-                'keyword2' => $data['data']['msn'],
-                'url' => '/pages/chat/customer_list/chat?userId=' . $data['data']['uid'] . '&mer_id=' . $data['data']['mer_id']
-            ];
-            Queue::push(SendSmsJob::class, ['tempId' => 'SERVER_NOTICE', 'id' => $data['uid'], 'params' => $params]);
+            $nickname = app()->make(UserRepository::class)->getUsername($data['data']['uid']);
+            Queue::push(SendNewsJob::class, [
+                $data['uid'],
+                [
+                    'title' => '收到用户【' . $nickname . '】的咨询消息，请及时查看',
+                    'description' => $data['data'],
+                    'url' => rtrim(systemConfig('site_url'), '/') . '/pages/chat/customer_list/chat?userId=' . $data['data']['uid'] . '&mer_id=' . $data['data']['mer_id'],
+                    'image' => rtrim(systemConfig('site_url'), '/') . '/static/service_wechat_msg.jpg'
+                ]
+            ]);
+            //TODO 客服消息提醒
+//            $user = app()->make(UserRepository::class)->get($data['data']['uid']);
+//            $params = [
+//                'mer_id' => $data['data']['mer_id'],
+//                'keyword1' => date('Y-m-d H:i:s',time()),
+//                'keyword2' => $data['data']['msn'],
+//                'url' => '/pages/chat/customer_list/chat?userId=' . $data['data']['uid'] . '&mer_id=' . $data['data']['mer_id']
+//            ];
+//            Queue::push(SendSmsJob::class, ['tempId' => 'SERVER_NOTICE', 'id' => $data['uid'], 'params' => $params]);
         }else{
             $serviceLogRepository->serviceRead($data['data']['mer_id'], $data['data']['uid'], $data['data']['service_id']);
             app()->make(StoreServiceUserRepository::class)->read($data['data']['mer_id'], $data['data']['uid'], true);
@@ -163,14 +175,24 @@ class SwooleTaskListen implements ListenerInterface
             $serviceLogRepository->userRead($data['data']['mer_id'], $data['data']['uid']);
             app()->make(StoreServiceUserRepository::class)->read($data['data']['mer_id'], $data['data']['uid']);
         } else {
+            //TODO 用户消息提醒
+            Queue::push(SendNewsJob::class, [
+                $data['uid'],
+                [
+                    'title' => '您收到新的消息，请及时查看',
+                    'description' => $data['data'],
+                    'url' => rtrim(systemConfig('site_url'), '/') . '/pages/chat/customer_list/chat?mer_id=' . $data['data']['mer_id'],
+                    'image' => rtrim(systemConfig('site_url'), '/') . '/static/service_wechat_msg.jpg'
+                ]
+            ]);
             //TODO 客服给用户发送消息
-            $params = [
-                'mer_id' => $data['data']['mer_id'],
-                'keyword1' =>  date('Y-m-d H:i:s', time()),
-                'keyword2' =>  $data['data']['msn'],
-                'url' =>   '/pages/chat/customer_list/chat?mer_id=' . $data['data']['mer_id']
-            ];
-            Queue::push(SendSmsJob::class, ['id' => $data['uid'], 'tempId' => 'SERVER_NOTICE', 'params' => $params]);
+//            $params = [
+//                'mer_id' => $data['data']['mer_id'],
+//                'keyword1' =>  date('Y-m-d H:i:s', time()),
+//                'keyword2' =>  $data['data']['msn'],
+//                'url' =>   '/pages/chat/customer_list/chat?mer_id=' . $data['data']['mer_id']
+//            ];
+//            Queue::push(SendSmsJob::class, ['id' => $data['uid'], 'tempId' => 'SERVER_NOTICE', 'params' => $params]);
         }
     }
 

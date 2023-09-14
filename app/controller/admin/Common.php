@@ -369,13 +369,13 @@ class Common extends BaseController
         $sys_login_banner = systemConfig('sys_login_banner');
         $beian_sn = systemConfig('beian_sn');
         $login_banner = [];
-        foreach ($sys_login_banner as $item) {
+
+        foreach ($sys_login_banner ?: [] as $item) {
             $login_banner[] = [
                 'pic' => $item,
                 'name' => $item
             ];
         }
-
         return app('json')->success(compact('login_banner', 'login_logo', 'login_title', 'menu_slogo', 'menu_logo', 'beian_sn'));
     }
 
@@ -386,7 +386,7 @@ class Common extends BaseController
             'version' => get_crmeb_version('未知'),
             'year' => '© 2014-' . date('Y', time()),
             'beian_sn' => systemConfig('beian_sn'),
-            'url' => 'www.crmeb.com',
+            'url' => 'http://www.crmeb.com',
             'Copyright' => 'Copyright',
             'sys_open_version' => $sys_open_version === '' ? '1' : $sys_open_version,
         ];
@@ -399,6 +399,7 @@ class Common extends BaseController
             $data['status'] = 1;
             $data['Copyright'] = $copyright['copyright_context'] ?? '';
             $data['image'] = $copyright['copyright_image'] ?? '';
+            $data['url'] = systemConfig('site_url');
         }
         return app('json')->success($data);
     }
@@ -443,5 +444,21 @@ class Common extends BaseController
         return app('json')->success($data);
     }
 
+
+    public function authCopyright()
+    {
+        $data = [
+            'status' => 1,
+        ];
+        return  app('json')->success($data);
+    }
+
+    public function copyright()
+    {
+        $data = [
+            'status' => 1,
+        ];
+        return  app('json')->success($data);
+    }
 }
 

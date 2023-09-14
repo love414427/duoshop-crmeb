@@ -74,7 +74,7 @@ class FinancialDao extends BaseDao
             ->when(isset($where['type']) && $where['type'] !=='',function($query) use($where){
                 $query->where('Financial.type',$where['type']);
             });;
-        $query->order('Financial.create_time DESC');
+        $query->order('Financial.financial_id DESC');
 
         return $query;
     }

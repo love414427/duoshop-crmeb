@@ -35,7 +35,8 @@ class StorePrinterRepository extends BaseRepository
             $formData = [];
             $form = Elm::createForm(Route::buildUrl('merchantStorePrinterCreate')->build());
         }
-        $form->setRule([
+
+        $yun = [
             Elm::input('printer_name','打印机名称')->required(),
             Elm::input('printer_appkey','应用ID')->required(),
             Elm::input('printer_appid','用户ID')->required(),
@@ -48,6 +49,30 @@ class StorePrinterRepository extends BaseRepository
                 ]
             ]),
             Elm::switches('status', '是否开启', 1)->inactiveValue(0)->activeValue(1)->inactiveText('关')->activeText('开')
+        ];
+        $fei = [
+            Elm::input('printer_name','打印机名称')->required(),
+            Elm::input('printer_appid','USER')->required(),
+            Elm::input('printer_appkey','UKEY')->required(),
+            Elm::input('printer_terminal','飞鹅云打印机SN')->required()->appendRule('suffix', [
+                'type' => 'div',
+                'style' => ['color' => '#999999'],
+                'domProps' => [
+                    'innerHTML' =>'飞鹅云打印机标签上的编号，必须在飞鹅云后台添加打印机才可以使用',
+                ]
+            ]),
+            Elm::switches('status', '是否开启', 1)->inactiveValue(0)->activeValue(1)->inactiveText('关')->activeText('开')
+        ];
+
+        $form->setRule([
+            Elm::radio('type', '打印机类型', 0)
+                ->setOptions([
+                    ['value' => 0, 'label' => '易联云打印机'],
+                    ['value' => 1, 'label' => '飞鹅云打印机'],
+                ])->control([
+                    ['value' => 0, 'rule' => $yun],
+                    ['value' => 1, 'rule' => $fei]
+                ]),
         ]);
         return $form->setTitle($id ? '修改打印机' : '添加打印机')->formData($formData);
 
@@ -97,6 +122,7 @@ class StorePrinterRepository extends BaseRepository
             throw new ValidateException('打印功能未开启');
 
         $res = $this->dao->getSearch(['mer_id' => $merId, 'status' => 1])->column('
+        type,
         printer_appkey clientId,
         printer_terminal terminal,
         printer_appid partner,
@@ -110,7 +136,6 @@ class StorePrinterRepository extends BaseRepository
                 'partner' => merchantConfig($merId, 'develop_id'),
                 'terminal' => merchantConfig($merId, 'terminal_number')
             ];
-
             if (!$config['clientId'] || !$config['apiKey'] || !$config['partner'] || !$config['terminal']) {
                 $res[] = $config;
             }

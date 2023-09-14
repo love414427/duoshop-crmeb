@@ -14,6 +14,8 @@
 namespace app\common\model\system\diy;
 
 use app\common\model\BaseModel;
+use app\common\model\system\Relevance;
+use app\common\repositories\system\RelevanceRepository;
 
 class Diy extends BaseModel
 {
@@ -28,6 +30,21 @@ class Diy extends BaseModel
         return 'diy';
     }
 
+    public function relevance()
+    {
+        return  $this->hasMany(Relevance::class,'left_id','id')->whereIn('type',RelevanceRepository::MER_DIY_SCOPE);
+    }
+
+
+    public function getScopeValueAttr()
+    {
+        $value = [];
+        if ($this->scope_type){
+            $value = Relevance::where('left_id',$this->id)->whereIn('type',RelevanceRepository::MER_DIY_SCOPE)->column('right_id');
+        }
+        return $value;
+    }
+
     public function searchTypeAttr($query,$value)
     {
         if (is_array($value)) {
@@ -39,17 +56,16 @@ class Diy extends BaseModel
 
     public function searchMerIdAttr($query, $value)
     {
-        if ($value) {
-            $query->where(function ($query) use ($value){
-                $query->where('mer_id', $value)->whereOr('is_default',2);
-            });
-        } else {
-            $query->where('mer_id', $value)->where('is_default','<',2);
-        }
+        $query->where('mer_id', $value);
     }
 
     public function searchIsDefaultAttr($query, $value)
     {
         $query->where('is_default', $value);
+    }
+
+    public function searchMerDefaultAttr($query, $value)
+    {
+        $query->whereIn('is_default',[1,2]);
     }
 }

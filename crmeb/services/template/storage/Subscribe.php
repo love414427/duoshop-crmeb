@@ -37,8 +37,8 @@ class Subscribe extends BaseMessage
      */
     public function getTempId(string $templateId)
     {
-        $tempkey = app()->make(SystemNoticeConfigRepository::class)->getSearch(['const_key' => $templateId])->with(['routineTemplate'])->find();
-        return $tempkey['routineTemplate']['tempid'];
+        $tempkey = app()->make(SystemNoticeConfigRepository::class)->getSearch(['const_key' => $templateId])->find();
+        return $tempkey['routine_tempid'];
     }
 
     /**

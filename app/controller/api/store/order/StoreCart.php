@@ -68,8 +68,10 @@ class StoreCart extends BaseController
     public function create(validate $validate)
     {
         $data = $this->checkParams($validate);
-        if(!in_array($data['product_type'],[0,1,2,3,4,20])) return app('json')->fail('商品类型错误');
-        if ($data['cart_num'] <= 0) return app('json')->fail('购买数量有误');
+        if(!in_array($data['product_type'],[0,1,2,3,4,20]))
+            return app('json')->fail('商品类型错误');
+        if ($data['cart_num'] <= 0)
+            return app('json')->fail('购买数量有误');
         $user = $this->request->userInfo();
         event('user.cart.before',compact('user','data'));
         $data['source'] = $data['product_type'];
@@ -120,7 +122,6 @@ class StoreCart extends BaseController
         event('user.cart', compact('user','storeCart'));
         return app('json')->success(['cart_id' => $cart['cart_id']]);
     }
-
 
     /**
      * @param $id

@@ -91,6 +91,7 @@ class User extends BaseController
             'group_id',
             'phone',
             'uid',
+            'is_svip',
             ]);
         [$page, $limit] = $this->getPage();
         return app('json')->success($this->repository->getList($where, $page, $limit));

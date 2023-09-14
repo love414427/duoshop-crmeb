@@ -9,9 +9,7 @@
 // | Author: CRMEB Team <admin@crmeb.com>
 // +----------------------------------------------------------------------
 
-
 namespace crmeb\services\easywechat;
-
 
 use EasyWeChat\Core\AbstractAPI;
 use EasyWeChat\Core\AccessToken;

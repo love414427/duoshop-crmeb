@@ -148,15 +148,15 @@ class UserBrokerageRepository extends BaseRepository
                 ->required()
                 ->value($formData['brokerage_icon'] ?? '')
                 ->modal(['modal' => false])
-                ->width('896px')
-                ->height('480px'),
+                ->width('1000px')
+                ->height('600px'),
             Elm::number('value', ' 所需成长值',$formData['brokerage_rule']['value'] ?? 0)->required(),
             Elm::frameImage('image', '背景图', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=image&type=1')
                 ->value($formData['brokerage_rule']['image']??'')
                 ->required()
                 ->modal(['modal' => false])
-                ->width('896px')
-                ->height('480px'),
+                ->width('1000px')
+                ->height('600px'),
         ];
         $form->setRule($rules);
         return $form->setTitle(is_null($id) ? '添加会员等级' : '编辑会员等级')->formData($formData);

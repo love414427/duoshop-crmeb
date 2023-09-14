@@ -51,10 +51,8 @@ class updateSpu extends Command
         $prodcutType = [];
         if ($input->hasOption('productType')){
             $tyep = $input->getOption('productType');
-            if(in_array($tyep,[0,1,2,3,4])) $prodcutType = [$tyep];
+            if(in_array($tyep,[0,1,2,3,4,20])) $prodcutType = [$tyep];
         }
-
-
         $output->writeln('开始执行');
         $this->checkAndUpdateSpu($prodcutType);
         $output->writeln('执行完成');

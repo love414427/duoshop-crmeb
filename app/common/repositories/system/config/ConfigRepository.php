@@ -79,10 +79,10 @@ class ConfigRepository extends BaseRepository
     {
         switch ($config['config_type']) {
             case 'image':
-                $component = Elm::frameImage($config['config_key'], $config['config_name'], '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=' . $config['config_key'] . '&type=1')->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false]);
+                $component = Elm::frameImage($config['config_key'], $config['config_name'], '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=' . $config['config_key'] . '&type=1')->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false]);
                 break;
             case 'images':
-                $component = Elm::frameImage($config['config_key'], $config['config_name'], '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=' . $config['config_key'] . '&type=2')->maxLength(5)->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false]);
+                $component = Elm::frameImage($config['config_key'], $config['config_name'], '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=' . $config['config_key'] . '&type=2')->maxLength(5)->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false]);
                 break;
             case 'file':
                 $component = Elm::uploadFile($config['config_key'], $config['config_name'], rtrim(systemConfig('site_url'), '/') . Route::buildUrl('configUpload', ['field' => 'file'])->build())->headers(['X-Token' => request()->token()]);

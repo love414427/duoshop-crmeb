@@ -17,12 +17,14 @@ namespace app\controller\admin\system\attachment;
 use app\common\repositories\system\attachment\AttachmentCategoryRepository;
 use app\common\repositories\system\attachment\AttachmentRepository;
 use crmeb\basic\BaseController;
+use crmeb\services\DownloadImageService;
 use crmeb\services\UploadService;
 use Exception;
 use think\App;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
+use think\facade\Cache;
 use think\response\Json;
 
 /**
@@ -69,6 +71,7 @@ class Attachment extends BaseController
     public function image($id, $field, AttachmentCategoryRepository $repository)
     {
         $file = $this->request->file($field);
+
         $ueditor = $this->request->param('ueditor');
         if (!$file)
             return app('json')->fail('请上传图片');
@@ -106,7 +109,7 @@ class Attachment extends BaseController
             'attachment_name' => str_replace($_name, '', $file->getOriginalName()),
             'attachment_src' => $res['dir']
         ];
-        $this->repository->create($type, $this->merId, $this->request->adminId(), $data);
+        $image = $this->repository->create($type, $this->merId, $this->request->adminId(), $data);
         if ($ueditor)
             return response([
                 'state' => 'SUCCESS',
@@ -114,8 +117,10 @@ class Attachment extends BaseController
                 'title' => $data['attachment_src'],
                 'original' => $data['attachment_src'],
             ], 200, [], 'json');
-        return app('json')->success(['src' => $data['attachment_src']]);
+        return app('json')->success(['src' => $data['attachment_src'],'attachment_id' => $image->attachment_id]);
     }
+
+
 
     /**
      * 获取列表
@@ -185,4 +190,99 @@ class Attachment extends BaseController
         return app('json')->success('修改成功');
     }
 
+    /**
+     * TODO 扫码上传图片，生成二维码
+     * @param $pid
+     * @return Json
+     * @author Qinii
+     * @day 2023/7/18
+     */
+    public function scanUploadQrcode($pid)
+    {
+        $merId = $this->request->merId();
+        $token = $merId.md5(time());
+        $url = rtrim(systemConfig('site_url'),'/') .'/pages/admin/scan/index?pid='.$pid.'&mer_id='.$merId.'&token='.$token;
+        Cache::set('scan_mer_'.$token, $merId);
+        return app('json')->success(compact('token','pid','url'));
+    }
+
+    /**
+     * TODO 获取通过二维码上传的图片
+     * @param $token
+     * @return Json
+     * @author Qinii
+     * @day 2023/7/18
+     */
+    public function scanUploadImage($token)
+    {
+        $res = Cache::smembers ('scan_'.$token);
+        $data = [];
+        if ($res) {
+            $data = $this->repository->getSearch(['ids' => $res])->field('attachment_id,attachment_src')->select();
+        }
+        return app('json')->success($data);
+    }
+
+    /**
+     * TODO 提交通过扫码上传的图片信息，可修改分类
+     * @param $token
+     * @param AttachmentCategoryRepository $attachmentCategoryRepository
+     * @return Json
+     * @author Qinii
+     * @day 2023/7/18
+     */
+    public function scanUploadSave($token, AttachmentCategoryRepository $attachmentCategoryRepository)
+    {
+        $id = $this->request->param('pid');
+        $ids = $this->request->param('ids');
+        if ($id && !$attachmentCategoryRepository->get($id, $this->merId))
+            return app('json')->fail('目录不存在');
+        $this->repository->updates($ids,['attachment_category_id' => $id]);
+        Cache::del('scan_'.$token);
+        Cache::del('scan_mer_'.$token);
+        return app('json')->success('操作成功');
+    }
+
+    /**
+     * TODO 线上图片上传
+     * @param AttachmentCategoryRepository $attachmentCategoryRepository
+     * @return Json
+     * @author Qinii
+     * @day 2023/7/19
+     */
+    public function onlineUpload(AttachmentCategoryRepository $attachmentCategoryRepository)
+    {
+        $id = $this->request->param('id',0);
+        $images = $this->request->param('images',[]);
+
+        if (!$images) return app('json')->fail('请上传图片地址');
+        if ($id) {
+            if (!$category = $attachmentCategoryRepository->get($id, $this->merId))
+                return app('json')->fail('目录不存在');
+            $info = [
+                'enname' => $category->attachment_category_enname,
+                'id' => $category->attachment_category_id
+            ];
+        } else {
+            $info = [
+                'enname' => 'def',
+                'id' => 0
+            ];
+        }
+        $type = (int)systemConfig('upload_type') ?: 1;
+        $upload = app()->make(DownloadImageService::class)->downloadImages($images,$info['enname']);
+        $data = [];
+        foreach ($upload as $item ) {
+            $data[] = [
+                'attachment_category_id' => $info['id'],
+                'attachment_name' => $item['name'],
+                'attachment_src' => $item['path'],
+                'upload_type' => $type,
+                'user_type' => $this->merId,
+                'user_id' => $this->request->adminId()
+            ];
+        }
+        if ($data) $this->repository->insertAll($data);
+        return app('json')->success('操作成功');
+    }
 }

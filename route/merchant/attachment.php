@@ -19,6 +19,18 @@ Route::group(function () {
 
     //附件管理
     Route::group('system/attachment', function () {
+        Route::get('scan_upload/qrcode/:pid', '/scanUploadQrcode')->name('merchantAttachmentScanQrcode')->option([
+            '_alias' => '上传二维码',
+        ]);
+        Route::get('scan_upload/image/:token', '/scanUploadImage')->name('merchantAttachmentScanImage')->option([
+            '_alias' => '扫码上传图片',
+        ]);
+        Route::post('scan_upload/image/:token', '/scanUploadSave')->name('merchantAttachmentScanImageSave')->option([
+            '_alias' => '扫码上传保存',
+        ]);
+        Route::post('online_upload', '/onlineUpload')->name('merchantAttachmentOnline')->option([
+            '_alias' => '在线图片',
+        ]);
         Route::get('lst', '/getList')->name('merchantAttachmentLst')->option([
             '_alias' => '列表',
             ]);

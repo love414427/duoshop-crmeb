@@ -61,10 +61,13 @@ class Group extends BaseController
     public function get( $id)
     {
         $data = $this->repository->get($id)->hidden(['create_time', 'sort']);
-        if (!$data)
+        if (!$data) {
             return app('json')->fail('数据组不存在');
-        else
+        } else {
+            $data->fields = $this->repository->handleFields($data->fields);
             return app('json')->success($data);
+        }
+
 
     }
 

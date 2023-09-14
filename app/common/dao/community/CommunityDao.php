@@ -53,6 +53,11 @@ class CommunityDao extends BaseDao
             ->when(isset($where['not_id']) && $where['not_id'] !==  '', function ($query) use($where) {
                 $query->whereNotIn('Community.community_id',$where['not_id']);
             })
+            ->when(isset($where['in_id']) && $where['in_id'] !==  '', function ($query) use($where) {
+                $query->whereOr(function($query) use($where){
+                    $query->whereIn('Community.community_id',$where['in_id']);
+                });
+            })
             ->when(isset($where['community_ids']) && $where['community_ids'] !==  '', function ($query) use($where) {
                 $query->whereIn('Community.community_id',$where['community_ids']);
             })

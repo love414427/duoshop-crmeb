@@ -143,7 +143,7 @@ class SystemNoticeConfig extends BaseController
                 $data[$k] = $v;
             }
         }
-        $this->repository->save($id,$data);
+        $this->repository->update($id,$data);
         return app('json')->success('修改成功');
     }
 

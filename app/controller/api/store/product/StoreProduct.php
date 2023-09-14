@@ -71,9 +71,16 @@ class StoreProduct extends BaseController
         }
 
         if ($this->request->isLogin()) {
-            app()->make(UserMerchantRepository::class)->updateLastTime($this->request->uid(), $data->mer_id);
+            app()->make(UserMerchantRepository::class)->updateLastTime($this->request->uid(), $data['mer_id']);
         }
 
+        return app('json')->success($data);
+    }
+
+    public function show($id)
+    {
+        $uid = $this->request->isLogin() ? $this->request->uid() : 0;
+        $data = $this->repository->getProductShow($id, [],null,$uid);
         return app('json')->success($data);
     }
 
@@ -179,17 +186,25 @@ class StoreProduct extends BaseController
 
     public function priceRule($id)
     {
-        $path = app()->make(StoreCategoryRepository::class)->query(['store_category_id' => $id, 'mer_id' => 0])->value('path');
-        if ($path && $path !== '/') {
-            $ids = explode('/', trim($path, '/'));
-            $ids[] = $id;
-        } else {
-            $ids[] = $id;
+        $cache_unique = md5('get_product_rule_' . $id);
+        $res = Cache::get( $cache_unique);
+        if (!$res) {
+            $path = app()->make(StoreCategoryRepository::class)->query(['store_category_id' => $id, 'mer_id' => 0])->value('path');
+            if ($path && $path !== '/') {
+                $ids = explode('/', trim($path, '/'));
+                $ids[] = $id;
+            } else {
+                $ids[] = $id;
+            }
+            $rule = app()->make(PriceRuleRepository::class)->search(['cate_id' => $ids, 'is_show' => 1])
+                ->order('sort DESC,rule_id DESC')->find();
+            if ($rule) {
+                $res = json_encode($rule->toArray());
+                Cache::tag('get_product')->set($cache_unique, $res,3600);
+            }
         }
-        $rule = app()->make(PriceRuleRepository::class)->search(['cate_id' => $ids, 'is_show' => 1])
-            ->order('sort DESC,rule_id DESC')->find();
-        if ($rule) {
-            return app('json')->success($rule->toArray());
+        if ($res) {
+            return app('json')->success(json_decode($res, true));
         }
         return app('json')->fail('规则不存在');
     }

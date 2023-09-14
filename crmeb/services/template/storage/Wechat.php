@@ -46,8 +46,8 @@ class Wechat extends BaseMessage
      */
     public function getTempId(string $templateId)
     {
-        $tempkey = app()->make(SystemNoticeConfigRepository::class)->getSearch(['const_key' => $templateId])->with(['wechatTemplate'])->find();
-        return $tempkey['wechatTemplate']['tempid'];
+        $tempkey = app()->make(SystemNoticeConfigRepository::class)->getSearch(['const_key' => $templateId])->find();
+        return $tempkey['wechat_tempid'];
     }
 
     /**

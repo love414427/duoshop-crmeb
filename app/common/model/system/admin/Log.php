@@ -15,6 +15,7 @@ namespace app\common\model\system\admin;
 
 
 use app\common\model\BaseModel;
+use app\common\model\system\auth\Menu;
 
 class Log extends BaseModel
 {
@@ -37,5 +38,10 @@ class Log extends BaseModel
     public static function tableName(): string
     {
         return 'system_log';
+    }
+
+    public function menu()
+    {
+        return $this->hasOne(Menu::class,'route','route');
     }
 }

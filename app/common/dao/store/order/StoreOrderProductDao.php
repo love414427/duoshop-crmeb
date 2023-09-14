@@ -80,11 +80,22 @@ class StoreOrderProductDao extends BaseDao
      * @author xaboy
      * @day 2020/6/12
      */
-    public function userRefundProducts(array $ids, $uid, $orderId = null)
+    public function userRefundProducts(array $ids, $uid, $orderId = null,$refund_switch = 1)
     {
-        return StoreOrderProduct::getDB()->whereIn('order_product_id', $ids)->when($orderId, function ($query, $orderId) {
-            return $query->where('order_id', $orderId);
-        })->where('uid', $uid)->where('refund_num', '>', 0)->where('refund_switch',1)->select();
+        return StoreOrderProduct::getDB()
+            ->when($ids,function($query) use($ids){
+                $query->whereIn('order_product_id', $ids);
+            })
+            ->when($orderId, function ($query) use($orderId) {
+                 $query->where('order_id', $orderId);
+            })
+            ->when($uid, function ($query) use($uid) {
+                 $query->where('uid', $uid);
+            })
+            ->when($refund_switch, function ($query) use($refund_switch) {
+                $query->where('refund_switch', $refund_switch);
+            })
+            ->where('refund_num', '>', 0)->select();
     }
 
     public function orderProductGroup($date, $merId = null, $limit = 7)

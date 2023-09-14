@@ -108,6 +108,13 @@ class StoreOrderDao extends BaseDao
             ->when(isset($where['uid']) && $where['uid'] !== '', function ($query) use ($where) {
                 $query->where('uid', $where['uid']);
             })
+            ->when(isset($where['is_spread']) && $where['is_spread'] !== '', function ($query) use ($where) {
+                if ($where['is_spread']) {
+                    $query->where(function($query) {
+                        $query->where('spread_uid','>',0)->whereOr('top_uid','>',0);
+                    });
+                }
+            })
             ->when(isset($where['is_user']) && $where['is_user'] !== '', function ($query) use ($where) {
                 $query->where(function($query) {
                     $query->where('order_type',0)->whereOr(function($query){
@@ -117,10 +124,14 @@ class StoreOrderDao extends BaseDao
             })
             //待核销订单
             ->when(isset($where['is_verify']) && $where['is_verify'], function ($query) use ($where) {
-                $query->where('StoreOrder.order_type', 1)->where('StoreOrder.status',0);
+                $query->where('StoreOrder.order_type', 1)->where('StoreOrder.status',0)->where('paid', 1);
             })
             ->when(isset($where['pay_type']) && $where['pay_type'] !== '', function ($query) use ($where) {
-                $query->where('StoreOrder.pay_type', $where['pay_type']);
+                if (is_int($where['pay_type'])) {
+                    $query->where('StoreOrder.pay_type', $where['pay_type']);
+                } else {
+                    $query->whereIn('StoreOrder.pay_type', $where['pay_type']);
+                }
             })
             ->when(isset($where['order_ids']) && $where['order_ids'] !== '', function ($query) use ($where) {
                 $query->whereIn('order_id', $where['order_ids']);
@@ -159,6 +170,14 @@ class StoreOrderDao extends BaseDao
                            ->whereOr('phone', 'like', "%{$where['username']}%")
                            ->whereOr('StoreOrder.user_phone', 'like', "%{$where['username']}%");
                     });
+            })
+            ->when(isset($where['spread_name']) && $where['spread_name'] !== '', function ($query) use ($where) {
+                $uid = User::where('nickname', 'like', "%{$where['spread_name']}%")->column('uid');
+                $query->whereIn('StoreOrder.spread_uid',$uid);
+            })
+            ->when(isset($where['top_spread_name']) && $where['top_spread_name'] !== '', function ($query) use ($where) {
+                $uid = User::where('nickname', 'like', "%{$where['top_spread_name']}%")->column('uid');
+                $query->whereIn('StoreOrder.top_uid',$uid);
             })
             ->when(isset($where['store_name']) && $where['store_name'] !== '', function ($query) use ($where) {
                 $orderId = StoreOrderProduct::alias('op')
@@ -889,7 +908,7 @@ class StoreOrderDao extends BaseDao
                 $query ->where('R.refund_type',2);
             })
             ->where('P.product_type',1)->where('R.status',3);
-        return $query->count();
+        return $query->sum('R.refund_num');
     }
 
 
@@ -903,14 +922,26 @@ class StoreOrderDao extends BaseDao
      */
     public function getMaxCountNumber(int $uid, int $productId)
     {
-        return StoreOrder::hasWhere('orderProduct',function($query) use($productId){
-            $query->where('product_id', $productId);
-        })
-        ->where(function($query) {
-            $query->where('is_del',0)->whereOr(function($query){
-                $query->where('is_del',1)->where('paid',1);
+//        return StoreOrder::hasWhere('orderProduct',function($query) use($productId){
+//            $query->where('product_id', $productId);
+//        })
+//        ->where(function($query) {
+//            $query->where('is_del',0)->whereOr(function($query){
+//                $query->where('is_del',1)->where('paid',1);
+//            });
+//        })->where('StoreOrder.uid',$uid)->select()
+//       ;
+        return (int)StoreOrderProduct::hasWhere('orderInfo',function($query) use($uid){
+            $query->where('uid',$uid)->where(function($query){
+                $query->where('is_del',0)->whereOr(function($query){
+                    $query->where('is_del',1)->where('paid',1);
+                });
             });
-        })->where('StoreOrder.uid',$uid)->count()
-       ;
+        })->where('product_id',$productId)->sum('product_num');
+    }
+
+    public function getOrderSn($order_id)
+    {
+        return StoreOrder::getDB()->where($this->getPk(), $order_id)->value('order_sn', '');
     }
 }

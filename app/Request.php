@@ -118,6 +118,11 @@ class Request extends \think\Request
         return intval($this->hasMacro('merchantId') ? $this->merchantId() : 0);
     }
 
+    public function merAdminId()
+    {
+        return intval($this->hasMacro('adminId') ? $this->adminId() : 0);
+    }
+
     public function setOriginFile($name, $array)
     {
         $this->file[$name] = $array;

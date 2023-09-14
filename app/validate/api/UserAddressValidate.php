@@ -22,7 +22,7 @@ class UserAddressValidate extends Validate
     protected $rule = [
         'real_name|收货人姓名' => 'require',
         'phone|收货人电话' => 'require|alphaDash|mobile',
-        'area|收货信息' => 'require|array|min:3|checkArea',
+        'area|收货信息' => 'require|array|checkArea',
         'detail|收货人详细地址' => 'require',
     ];
 
@@ -32,6 +32,7 @@ class UserAddressValidate extends Validate
 
     public function checkArea($list)
     {
+        if (count($list) < 3) return '请完善地址信息，需包括省市区/县街道/乡';
         foreach ($list as $item) {
             if (!isset($item['name'], $item['id']))
                 return '请选择正确的收货地址';

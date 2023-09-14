@@ -70,6 +70,8 @@ class StoreCouponDao extends BaseDao
             $query->where('coupon_id', (int)$where['coupon_id']);
         })->when(isset($where['send_type']) && $where['send_type'] !== '', function ($query) use ($where) {
             $query->where('send_type', (int)$where['send_type']);
+        })->when(isset($where['not_send_type']) && $where['not_send_type'] !== '', function ($query) use ($where) {
+            $query->whereNotIn('send_type', $where['not_send_type']);
         })->when(isset($where['type']) && $where['type'] !== '', function ($query) use ($where) {
             $query->where('type', (int)$where['type']);
         })->when($merId !== null, function ($query) use ($merId) {

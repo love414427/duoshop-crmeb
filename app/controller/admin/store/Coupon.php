@@ -171,7 +171,7 @@ class Coupon extends BaseController
 
     public function platformLst()
     {
-        $where = $this->request->params(['is_full_give', 'status', 'is_give_subscribe', 'coupon_name', 'send_type', 'type']);
+        $where = $this->request->params(['is_full_give', 'status', 'is_give_subscribe', 'coupon_name', 'send_type', 'type','not_send_type']);
         [$page, $limit] = $this->getPage();
         $data = $this->repository->sysLst($where, $page, $limit);
         return app('json')->success($data);

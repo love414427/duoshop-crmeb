@@ -129,7 +129,7 @@ class GroupData extends BaseController
         if (!$groupRepository->exists($groupId))
             return app('json')->fail('数据组不存在');
         $fieldRule = $groupRepository->fields($groupId);
-        $data['value'] = $this->request->params(array_column($fieldRule, 'field'));
+        $data['value'] = $this->repository->handleDataValue($fieldRule, $this->request->params(array_column($fieldRule, 'field')));
         $data['group_id'] = $groupId;
         $this->repository->create($this->request->merId(), $data, $fieldRule);
         return app('json')->success('添加成功');
@@ -154,7 +154,7 @@ class GroupData extends BaseController
         if (!$this->repository->merExists($this->request->merId(), $id))
             return app('json')->fail('数据不存在!');
         $fieldRule = $groupRepository->fields($groupId);
-        $data['value'] = $this->request->params(array_column($fieldRule, 'field'));
+        $data['value'] = $this->repository->handleDataValue($fieldRule, $this->request->params(array_column($fieldRule, 'field')));
         $this->repository->merUpdate($this->request->merId(), $id, $data, $fieldRule);
 
         return app('json')->success('修改成功');

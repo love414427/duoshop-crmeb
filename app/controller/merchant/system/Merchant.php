@@ -70,7 +70,6 @@ class Merchant extends BaseController
      */
     public function update(MerchantUpdateValidate $validate, MerchantTakeValidate $takeValidate, MerchantTakeRepository $repository)
     {
-
         $type = $this->request->param('type',1);
         $merchant = $this->request->merchant();
         if ($type == 2) {
@@ -87,6 +86,7 @@ class Merchant extends BaseController
                 'long',
                 'lat',
                 ['delivery_way',[2]],
+                ['services_type',0],
             ]);
             $validate->check($data);
             $sys_bases_status = systemConfig('sys_bases_status') === '0' ? 0 : 1;
@@ -94,9 +94,10 @@ class Merchant extends BaseController
                 return app('json')->fail('店铺资质不可为空');
 
             app()->make(ConfigValueRepository::class)->setFormData([
-                'mer_certificate' => $data['mer_certificate']
+                'mer_certificate' => $data['mer_certificate'],
+                'services_type' => $data['services_type']
             ], $this->request->merId());
-            unset($data['mer_certificate']);
+            unset($data['mer_certificate'], $data['services_type']);
 
             foreach ($data['delivery_way'] as $datum) {
                 if ($datum == 1) {
@@ -147,6 +148,7 @@ class Merchant extends BaseController
         $delivery = $repository->get($this->request->merId()) + systemConfig(['tx_map_key']);
         $data = array_merge($data,$delivery);
         $data['sys_bases_status'] = systemConfig('sys_bases_status') === '0' ? 0 : 1;
+        $data['services_type'] = (int)merchantConfig((int)$merchant->mer_id,'services_type');
 
         return app('json')->success($data);
     }

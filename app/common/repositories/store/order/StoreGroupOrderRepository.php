@@ -77,12 +77,16 @@ class StoreGroupOrderRepository extends BaseRepository
      */
     public function detail($uid, $id,$flag = true)
     {
-        return $this->search(['paid' => 0, 'uid' => $uid])->where('group_order_id', $id)->with(['orderList' => function (Relation $query) use ($flag) {
-            $query->when($flag, function ($query) {
-                $query->field('order_id,group_order_id,mer_id,order_sn,activity_type,pay_price,order_extend,order_type,is_virtual');
-            })->with(['merchant' => function ($query) use ($flag) {
-                $flag && $query->field('mer_id,mer_name');
-            }, 'orderProduct', 'presellOrder']);
+        return $this->search(['paid' => 0, 'uid' => $uid])->where('group_order_id', $id)
+            ->with([
+            'orderList' => function (Relation $query) use ($flag) {
+                $query->when($flag, function ($query) {
+                    $query->field('order_id,group_order_id,mer_id,order_sn,activity_type,pay_price,order_extend,order_type,is_virtual');
+                })->with([
+                    'merchant' => function ($query) use ($flag) {
+                        $flag && $query->field('mer_id,mer_name,service_phone')->append(['services_type']);
+                }, 'orderProduct', 'presellOrder'
+                ]);
         }])->find();
     }
 

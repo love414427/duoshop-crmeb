@@ -68,7 +68,7 @@ class StoreCategoryDao extends BaseDao
 
     public function getTwoLevel($merId = 0)
     {
-        $pid = model::getDB()->where('pid', 0)->where('is_show',1)->where('mer_id', $merId)->order('sort DESC')->column('store_category_id');
+        $pid = model::getDB()->where('pid', 0)->where('is_show',1)->where('type',0)->where('mer_id', $merId)->order('sort DESC')->column('store_category_id');
         return model::getDB()->whereIn('pid', $pid)->where('is_show', 1)->where('mer_id', $merId)->limit(20)->order('sort DESC')->column('store_category_id,cate_name,pid');
     }
 

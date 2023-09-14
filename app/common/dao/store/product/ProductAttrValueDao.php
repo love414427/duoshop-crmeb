@@ -42,6 +42,10 @@ class ProductAttrValueDao extends BaseDao
     {
         if ($isType == 2) {
             foreach ($data as $datum) {
+                if (!isset($datum['cdkey'])){
+                    $this->insertAll($data);
+                    break;
+                }
                 $cdkey = $datum['cdkey'];
                 unset($datum['cdkey']);
                 $sku = $this->create($datum);
@@ -50,6 +54,7 @@ class ProductAttrValueDao extends BaseDao
                     $sku->productCdkey()->saveAll($item);
                 }
             }
+
         } else {
             $this->insertAll($data);
         }

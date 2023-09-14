@@ -185,12 +185,12 @@ class StoreCategory extends BaseController
     {
         $data = $this->repository->getTreeList($this->request->merId(),1);
         $ret = [];
-        foreach ($data as $datum) {
-            if (isset($datum['children'])) {
-                $ret[] = $datum;
-            }
-        }
-        return app('json')->success($ret);
+//        foreach ($data as $datum) {
+//            if (isset($datum['children'])) {
+//                $ret[] = $datum;
+//            }
+//        }
+        return app('json')->success($data);
     }
 
     /**

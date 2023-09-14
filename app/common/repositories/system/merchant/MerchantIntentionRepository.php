@@ -114,7 +114,8 @@ class MerchantIntentionRepository extends BaseRepository
         $data['is_margin'] = $margin['is_margin'] ?? -1;
         $data['margin'] = $margin['margin'] ?? 0;
         $merData = [];
-        if ($create) {
+        $smsData = [];
+        if ($create == 1) {
             $password = substr($intention['phone'], -6);
             $merData = [
                 'mer_name' => $intention['mer_name'],
@@ -151,7 +152,7 @@ class MerchantIntentionRepository extends BaseRepository
 
         Db::transaction(function () use ($config, $intention, $data, $create,$margin,$merData,$smsData) {
             if ($data['status'] == 1) {
-                if ($create) {
+                if ($create == 1) {
                     $merchant = app()->make(MerchantRepository::class)->createMerchant($merData);
                     $data['mer_id'] = $merchant->mer_id;
                     Queue::push(SendSmsJob::class, ['tempId' => 'APPLY_MER_SUCCESS', 'id' => $smsData]);

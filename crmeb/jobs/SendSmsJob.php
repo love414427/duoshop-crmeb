@@ -42,7 +42,6 @@ class SendSmsJob implements JobInterface
         }
         if ($status['notice_routine'] == 1) {
             try {
-                Log::info('订阅消息发送数据' . var_export($data, 1));
                 app()->make(WechatTemplateMessageService::class)->subscribeSendTemplate($data);
             } catch (\Exception $e) {
                 Log::info('订阅消息发送失败' . var_export($data, 1) . $e->getMessage());

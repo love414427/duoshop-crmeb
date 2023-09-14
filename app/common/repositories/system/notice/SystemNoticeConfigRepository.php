@@ -37,6 +37,7 @@ class SystemNoticeConfigRepository extends BaseRepository
         $this->dao = $dao;
     }
 
+
     public function getList(array $where, $page, $limit)
     {
         $query = $this->dao->getSearch($where);
@@ -219,11 +220,11 @@ class SystemNoticeConfigRepository extends BaseRepository
                     'name' => 'wechat'
                 ],
                 'children' =>[
-                    Elm::input('title1','通知类型', $formData->wechatTemplate->name)->disabled(true),
+                    Elm::input('title1','通知类型', $formData->notice_title)->disabled(true),
                     Elm::input('info1','场景说明', $formData->notice_info)->disabled(true),
-                    Elm::input('wechat_tempkey','模板消息编号', $formData->wechatTemplate->tempkey)->disabled(true),
-                    Elm::input('wechat_tempid','模板消息ID', $formData->wechatTemplate->tempid),
-                    Elm::textarea('wechat_content','模板消息内容', $formData->wechatTemplate->content)->disabled(true),
+                    Elm::input('wechat_tempkey','模板消息编号', $formData->wechat_tempkey)->disabled(true),
+                    Elm::input('wechat_tempid','模板消息ID', $formData->wechat_tempid),
+                    Elm::textarea('wechat_content','模板消息内容', $formData->wechat_content)->disabled(true),
                     Elm::switches('notice_wechat', '是否开启', 1)->activeValue(1)->inactiveValue(0)->inactiveText('关')->activeText('开'),
                 ]
             ];
@@ -237,11 +238,11 @@ class SystemNoticeConfigRepository extends BaseRepository
                     'name' => 'routine'
                 ],
                 'children' =>[
-                    Elm::input('title2','通知类型', $formData->routineTemplate->name)->disabled(true),
+                    Elm::input('title2','通知类型', $formData->notice_title)->disabled(true),
                     Elm::input('info2','场景说明', $formData->notice_info)->disabled(true),
-                    Elm::input('routine_tempkey','订阅消息编号', $formData->routineTemplate->tempkey)->disabled(true),
-                    Elm::input('routine_tempid','订阅消息ID', $formData->routineTemplate->tempid),
-                    Elm::textarea('routine_content','订阅消息内容', $formData->routineTemplate->content)->disabled(true),
+                    Elm::input('routine_tempkey','订阅消息编号', $formData->routine_tempkey)->disabled(true),
+                    Elm::input('routine_tempid','订阅消息ID', $formData->routine_tempid),
+                    Elm::textarea('routine_content','订阅消息内容', $formData->routine_content)->disabled(true),
                     Elm::switches('notice_routine', '是否开启', $formData->notice_routine)->activeValue(1)->inactiveValue(0)->inactiveText('关')->activeText('开'),
                 ]
             ];
@@ -259,20 +260,21 @@ class SystemNoticeConfigRepository extends BaseRepository
         return $form->setTitle( '编辑消息模板')->formData($formData->toArray());
     }
 
-    public function save($id, $data)
+    public function getTemplateList($type)
     {
-        $result = $this->dao->get($id);
-        if (isset($data['routine_tempid'])) {
-            $result->routineTemplate->tempid = $data['routine_tempid'];
-            $result->routineTemplate->save();
-            unset($data['routine_tempid']);
+        if ($type) {
+            $where['is_wechat'] = 1;
+            $field = 'notice_title,notice_config_id,notice_wechat,wechat_tempkey tempkey,wechat_content content,wechat_tempid tempid,type,kid';
+        } else {
+            $where['is_routine'] = 1;
+            $field = 'notice_title,notice_config_id,notice_routine,routine_tempkey tempkey,routine_content content,routine_tempid tempid,type,kid';
         }
-        if (isset($data['wechat_tempid'])) {
-            $result->wechatTemplate->tempid = $data['wechat_tempid'];
-            $result->wechatTemplate->save();
-            unset($data['wechat_tempid']);
+        $query = $this->dao->search($where);
+        $count = $query->count();
+        $list = $query->setOption('field',[])->field($field)->field($field)->select();
+        foreach ($list as &$item) {
+            if ($item['content']) $item['content'] = explode("\n", $item['content']);
         }
-        if (!empty($data)) $this->dao->update($id,$data);
-
+        return compact('list', 'count');
     }
 }

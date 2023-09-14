@@ -58,7 +58,7 @@ class StoreSeckillTimeRepository extends BaseRepository
             Elm::select('start_time','开始时间')->options($this->dao->getTime(1))->requiredNum(),
             Elm::select('end_time','结束时间')->options($this->dao->getTime(0))->requiredNum(),
             Elm::switches('status','是否启用')->activeValue(1)->inactiveValue(0)->inactiveText('关')->activeText('开'),
-            Elm::frameImage('pic', '图片', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=pic&type=1')->width('896px')->height('480px')->spin(0)->modal(['modal' => false])->props(['footer' => false]),
+            Elm::frameImage('pic', '图片', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=pic&type=1')->width('1000px')->height('600px')->spin(0)->modal(['modal' => false])->props(['footer' => false]),
         ]);
         return $form->setTitle(is_null($id) ? '添加'  : '编辑')->formData($formData);
     }
@@ -113,7 +113,6 @@ class StoreSeckillTimeRepository extends BaseRepository
                 $seckillEndTime = strtotime((date('Y-m-d ',time()).$item['end_time'].':00:00'));
                 $item['stop_time'] = date('Y-m-d H:i:s', $seckillEndTime);
             }
-
             $seckillTime[$k] = $item;
         }
         return  compact('seckillTime','seckillTimeIndex','seckillEndTime');
@@ -128,7 +127,7 @@ class StoreSeckillTimeRepository extends BaseRepository
      */
     public function getBginTime(array $where)
     {
-        if($where['start_time'] == '' || $where['end_time'] == ''){
+        if(empty($where) || ($where['start_time'] == '' || $where['end_time'] == '')){
             $where['start_time'] = date('H',time());
             $where['end_time'] = date('H',time()) + 1;
         }

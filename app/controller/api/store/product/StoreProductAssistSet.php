@@ -50,7 +50,11 @@ class StoreProductAssistSet extends BaseController
 
     public function detail($id)
     {
-        $data = $this->repository->detail($id,$this->userInfo);
+        $type = $this->request->param('type', 1);
+        if (!in_array($type, [1, 2])) {
+            return app('json')->fail('类型参数错误');
+        }
+        $data = $this->repository->detail($id,$this->userInfo,$type);
         return  app('json')->success($data);
     }
 

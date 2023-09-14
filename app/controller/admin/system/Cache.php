@@ -11,8 +11,11 @@
 namespace app\controller\admin\system;
 
 use app\common\repositories\system\CacheRepository;
+use app\common\repositories\system\config\ConfigValueRepository;
 use crmeb\basic\BaseController;
+use crmeb\services\RedisCacheService;
 use think\App;
+use think\facade\Cache as BaseCache;
 
 class Cache extends BaseController
 {
@@ -83,6 +86,19 @@ class Cache extends BaseController
      */
     public function clearCache()
     {
+        $type = $this->request->param('type',1);
+        switch ($type){
+            case 2:
+                BaseCache::tag('get_product')->clear();
+                break;
+            case 3:
+                BaseCache::delete('get_api_config');
+                break;
+            default:
+                BaseCache::clear();
+                break;
+        }
+        app()->make(ConfigValueRepository::class)->syncConfig();
         return app('json')->success('清除缓存成功');
     }
 }

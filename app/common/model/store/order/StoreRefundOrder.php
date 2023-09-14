@@ -15,7 +15,9 @@ namespace app\common\model\store\order;
 
 
 use app\common\model\BaseModel;
+use app\common\model\store\service\StoreService;
 use app\common\model\system\merchant\Merchant;
+use app\common\model\system\merchant\MerchantAdmin;
 use app\common\model\user\User;
 
 class StoreRefundOrder extends BaseModel
@@ -45,6 +47,16 @@ class StoreRefundOrder extends BaseModel
     {
         return $this->hasMany(StoreRefundProduct::class, 'refund_order_id', 'refund_order_id');
     }
+
+    public function admin()
+    {
+        return $this->hasOne(MerchantAdmin::class, 'merchant_admin_id', 'admin_id');
+    }
+    public function services()
+    {
+        return $this->hasOne(StoreService::class, 'service_id', 'admin_id');
+    }
+
 
     public function merchant()
     {
@@ -85,4 +97,21 @@ class StoreRefundOrder extends BaseModel
             'transaction_id' => $this->order->transaction_id,
         ];
     }
+
+    public function getCreateUserAttr()
+    {
+        switch ($this->user_type){
+            case 1:
+                return $this->user->nickname ?? '无';
+                break;
+            case 3:
+                return $this->admin->real_name ?? '无';
+                break;
+            case 4:
+                return $this->services->nickname ?? '无';
+                break;
+        }
+        return '无';
+    }
+
 }

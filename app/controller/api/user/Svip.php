@@ -158,11 +158,13 @@ class Svip extends BaseController
     {
         [$page, $limit] = $this->getPage();
         $user = $this->request->isLogin() ? $this->request->userInfo() : null;
-        $where['is_gift_bag'] = 0;
-        $where['product_type'] = 0;
-        $where['order'] = 'star';
-        $where['svip'] = 1;
-        $data = $spuRepository->getApiSearch($where, $page, $limit, $user);
-        return  app('json')->success($data);
+        if (systemConfig('svip_product_switch') || (isset($user->is_svip) && $user->is_svip > 0)){
+            $where['is_gift_bag'] = 0;
+            $where['product_type'] = 0;
+            $where['order'] = 'star';
+            $where['svip'] = 1;
+            $data = $spuRepository->getApiSearch($where, $page, $limit, $user);
+        }
+        return  app('json')->success($data ?? ['count' => 0,'list' => []]);
     }
 }

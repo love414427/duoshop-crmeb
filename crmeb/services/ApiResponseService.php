@@ -82,6 +82,24 @@ class ApiResponseService
         return $this->make(self::DEFAULT_SUCCESS_CODE, $message, $data);
     }
 
+    public function encode($message = self::DEFAULT_SUCCESS_MESSAGE, $data = null)
+    {
+        $message = $this->parseData($message);
+        if (is_array($message)) {
+            $data = $message;
+            $message = self::DEFAULT_SUCCESS_MESSAGE;
+        } else {
+            $data = $this->parseData($data);
+        }
+        $status = self::DEFAULT_SUCCESS_CODE;
+        $encode = true;
+        $content = compact('status','encode', 'message');
+        if (!is_null($data))
+            $content['data'] =  base64_encode(gzdeflate(json_encode($data,JSON_UNESCAPED_UNICODE),9));
+        $this->response->data($content);
+        return $this->response;
+    }
+
     /**
      * @param string|array|Arrayable $message
      * @param array|Arrayable|null $data

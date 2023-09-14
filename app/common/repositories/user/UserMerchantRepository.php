@@ -45,8 +45,11 @@ class UserMerchantRepository extends BaseRepository
         $make = app()->make(UserLabelRepository::class);
         $list = $query->setOption('field', [])->field('A.uid,A.user_merchant_id,B.avatar,B.nickname,B.user_type,A.last_pay_time,A.first_pay_time,A.label_id,A.create_time,A.last_time,A.pay_num,A.pay_price,B.phone,B.is_svip,B.svip_endtime')
             ->page($page, $limit)->order('A.user_merchant_id DESC')->select()->each(function ($item) use ($where, $make) {
-                return $item->label = count($item['label_id']) ? $make->labels($item['label_id'], $where['mer_id']) : [];
+                $item->label = count($item['label_id']) ? $make->labels($item['label_id'], $where['mer_id']) : [];
+                $item->svip_endtime = date('Y-m-d H:i:s', strtotime("+100 year"));
+                return $item;
             });
+
         return compact('count', 'list');
     }
 

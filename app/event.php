@@ -38,7 +38,6 @@ return [
              \crmeb\listens\AutoSendPayOrderSmsListen::class,
              \crmeb\listens\SyncSmsResultCodeListen::class,
              \crmeb\listens\SyncBroadcastStatusListen::class,
-             \crmeb\listens\ExcelFileDelListen::class,
              \crmeb\listens\RefundOrderAgreeListen::class,
              \crmeb\listens\SeckillTImeCheckListen::class,
              \crmeb\listens\AutoOrderReplyListen::class,

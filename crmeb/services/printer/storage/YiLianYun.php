@@ -97,9 +97,9 @@ class YiLianYun extends PrinterService
 订单编号：{$orderInfo['order_sn']}\r
 打印时间: {$timeYmd} \r
 付款时间: {$orderInfo['pay_time']}\r
-姓    名: {$orderInfo['real_name']}\r
-电    话: {$orderInfo['user_phone']}\r
-地    址: {$orderInfo['user_address']}\r
+姓   名: {$orderInfo['real_name']}\r
+电   话: {$orderInfo['user_phone']}\r
+地   址: {$orderInfo['user_address']}\r
 订单备注：{$orderInfo['mark']}\r
 *************商品***************\r
 {$goodsStr}

@@ -81,9 +81,7 @@ class resetImagePath extends Command
         $output->writeln('开始执行');
         foreach ($this->type as $type) {
             $models = $this->switchModel($type);
-
             foreach ($models as $model) {
-
                 $this->getResult($model, $type);
             }
         }

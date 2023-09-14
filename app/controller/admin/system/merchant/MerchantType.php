@@ -57,6 +57,7 @@ class MerchantType extends BaseController
         $this->repository->update($id, $this->getValidParams());
         return app('json')->success('修改成功');
     }
+
     public function detail($id)
     {
         $data = $this->repository->detail($id);
@@ -91,7 +92,7 @@ class MerchantType extends BaseController
 
     protected function getValidParams()
     {
-        $data = $this->request->params(['type_name', 'type_info', 'is_margin', 'margin', 'auth', 'description']);
+        $data = $this->request->params(['type_name', 'type_info', 'is_margin', 'margin', 'auth', 'description', 'mark']);
         $validate = app()->make(MerchantTypeValidate::class);
         $validate->check($data);
         if ($data['is_margin'] == 1) {

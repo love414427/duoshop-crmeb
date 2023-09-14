@@ -56,11 +56,13 @@ use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
 use think\exception\ValidateException;
+use think\facade\Config;
 use think\facade\Db;
 use think\facade\Log;
 use think\facade\Queue;
 use think\facade\Route;
 use think\Model;
+use think\model\Relation;
 
 /**
  * Class StoreOrderRepository
@@ -72,10 +74,14 @@ use think\Model;
 class StoreOrderRepository extends BaseRepository
 {
     /**
-     * 支付类型
+     * 支付类型 0余额 1 微信 2 小程序 3 微信 4 支付宝 5 支付宝 6 微信
      */
     const PAY_TYPE = ['balance', 'weixin', 'routine', 'h5', 'alipay', 'alipayQr', 'weixinQr'];
-
+    const PAY_TYPE_FILTEER = [
+      0 => 0,
+      1 => '1,2,3,6',
+      2 => 4,5
+    ];
     const TYPE_SN_ORDER = 'wxo';
     const TYPE_SN_PRESELL = 'wxp';
     const TYPE_SN_USER_ORDER = 'wxs';
@@ -297,10 +303,8 @@ class StoreOrderRepository extends BaseRepository
                 $_order_rate = 0;
 
                 if ($order['commission_rate'] > 0) {
-
-                    $commission_rate = ($order['commission_rate'] / 100);
-
-                    $_order_rate = bcmul($_payPrice, $commission_rate, 2);
+                    $commission_rate = bcdiv((string)$order['commission_rate'],'100',6);
+                    $_order_rate = bcmul($_payPrice, (string)$commission_rate, 2);
 
                     $_payPrice = bcsub($_payPrice, $_order_rate, 2);
                 }
@@ -795,6 +799,7 @@ class StoreOrderRepository extends BaseRepository
         if ($merId) $where['mer_id'] = $merId;          //商户订单
         if ($orderType === 0) $where['order_type'] = 0; //普通订单
         if ($orderType === 1) $where['take_order'] = 1; //已核销订单
+        if ($orderType === 2) $where['is_spread'] = 1; //分销订单
         //1: 未支付 2: 未发货 3: 待收货 4: 待评价 5: 交易完成 6: 已退款 7: 已删除
         $all = $this->dao->search($where, $sysDel)->where($this->getOrderType(0))->count();
         $statusAll = $all;
@@ -871,7 +876,6 @@ class StoreOrderRepository extends BaseRepository
             case 7:
                 $param['StoreOrder.is_del'] = 1;
                 break;  // 待核销
-                break;  // 已删除
             default:
                 unset($param['StoreOrder.is_del']);
                 break;  //全部
@@ -1087,9 +1091,12 @@ class StoreOrderRepository extends BaseRepository
         $order = $this->dao->userOrder($id, $uid);
         if (!$order)
             throw new ValidateException('订单不存在');
-        if (!count($order->refundProduct))
+        // 查找可退款商品
+        $orderProduct = app()->make(StoreOrderProductRepository::class);
+        $orderList = $orderProduct->getSearch(['order_id' => $order['order_id'], 'refund_num' => 0, 'refund_switch' => 1])->select();
+        if (!count($orderList))
             throw new ValidateException('没有可退款商品');
-        return $order->refundProduct->toArray();
+        return $orderList->toArray();
     }
 
     /**
@@ -1389,24 +1396,28 @@ class StoreOrderRepository extends BaseRepository
     {
         $where = [$this->getPk() => $id];
         if ($merId) {
-            $whre['mer_id'] = $merId;
-            $whre['is_system_del'] = 0;
+            $where['mer_id'] = $merId;
+            $where['is_system_del'] = 0;
         }
         $res = $this->dao->getWhere($where, '*', [
-            'orderProduct',
-            'user' => function ($query) {
-                $query->field('uid,real_name,nickname,is_svip,svip_endtime,phone');
-            },
-            'refundOrder' => function ($query) {
-                $query->field('order_id,extension_one,extension_two,refund_price,integral')->where('status', 3);
-            },
-            'finalOrder',
-            'TopSpread' => function ($query) {
-                $query->field('uid,nickname,avatar');
-            },
-            'spread' => function ($query) {
-                $query->field('uid,nickname,avatar');
-            },
+                'orderProduct',
+                'user' => function ($query) {
+                    $query->field('uid,real_name,nickname,is_svip,svip_endtime,phone');
+                },
+                'refundOrder' => function ($query) {
+                    $query->field('order_id,extension_one,extension_two,refund_price,integral')->where('status', 3);
+                },
+                'finalOrder',
+                'TopSpread' => function ($query) {
+                    $query->field('uid,nickname,avatar');
+                },
+                'spread' => function ($query) {
+                    $query->field('uid,nickname,avatar');
+                },
+                'merchant' => function (Relation $query) {
+                    $query->field('mer_id,mer_name,mer_state,mer_avatar,delivery_way,commission_rate,category_id,type_id')
+                        ->with(['merchantCategory','type_name']);
+                }
             ]
         );
         if (!$res) throw new ValidateException('数据不存在');
@@ -1537,14 +1548,15 @@ class StoreOrderRepository extends BaseRepository
                 // 1:退款中 2:部分退款 3 = 全退
                 $refunding = 0;
                 if ($item['orderProduct']) {
-                    $is_refund = array_column($item['orderProduct']->toArray(),'is_refund');
-                    $is_refund = array_unique($is_refund);
-                    if (in_array(1,$is_refund)) {
-                        $refunding = 1;
-                    } else if (in_array(2,$is_refund)) {
-                        $refunding = 2;
-                    } else if (in_array(3,$is_refund)) {
-                        $refunding = 3;
+                    $is_refund = array_unique(array_column($item['orderProduct']->toArray(),'is_refund'));
+                    if (count($is_refund) == 1) {
+                        if (in_array(3,$is_refund)) $refunding = 3;
+                    } else {
+                        if (in_array(1,$is_refund)) {
+                            $refunding = 1;
+                        } else {
+                            $refunding = 2;
+                        }
                     }
                 }
                 $item['refunding'] = $refunding;
@@ -1599,6 +1611,7 @@ class StoreOrderRepository extends BaseRepository
 
     public function getStat(array $where, $status)
     {
+
         unset($where['status']);
         $make = app()->make(StoreRefundOrderRepository::class);
         $presellOrderRepository = app()->make(PresellOrderRepository::class);
@@ -1618,6 +1631,7 @@ class StoreOrderRepository extends BaseRepository
 
         //余额支付
         $banclQuery = $this->dao->search(array_merge($where, ['paid' => 1, 'pay_type' => 0]))->where($this->getOrderType($status));
+
         $banclOrderId = $banclQuery->column('order_id');
         $banclPay1 = $banclQuery->sum('StoreOrder.pay_price');
         $banclPay2 = $presellOrderRepository->search(['pay_type' => [0], 'paid' => 1, 'order_ids' => $banclOrderId])->sum('pay_price');
@@ -1636,7 +1650,6 @@ class StoreOrderRepository extends BaseRepository
         $aliPay1 = $aliQuery->sum('StoreOrder.pay_price');
         $aliPay2 = $presellOrderRepository->search(['pay_type' => [4, 5], 'paid' => 1, 'order_ids' => $aliOrderId])->sum('pay_price');
         $aliPay = bcadd($aliPay1, $aliPay2, 2);
-
 
         $stat = [
             [
@@ -1851,17 +1864,24 @@ class StoreOrderRepository extends BaseRepository
             'total_postage' => $order['total_postage'],
             'pay_postage'   => $order['pay_postage'],
             'mark' => $order['mark'],
+            'give_integral' => $order['give_integral'],
         ];
 
         $printer = app()->make(StorePrinterRepository::class)->getPrinter($merId);
         event('order.print.before', compact('order'));
+        $name = Config::get('printer.name');
         foreach ($printer as $config) {
-            $printer = new Printer('yi_lian_yun', $config);
-            $res = $printer->setPrinterContent([
-                'name' => $order['merchant']['mer_name'],
-                'orderInfo' => $data,
-                'product' => $product
-            ])->startPrinter();
+            try{
+                $printer = new Printer($name[$config['type'] ?? 0], $config);
+                $res = $printer->setPrinterContent([
+                    'name' => $order['merchant']['mer_name'],
+                    'orderInfo' => $data,
+                    'product' => $product
+                ])->startPrinter();
+            } catch (\think\Exception $exception) {
+               Log::error('打印失败['.$config['terminal_number'].']：'.$exception->getMessage());
+            }
+
         }
 
         event('order.print', compact('order', 'res'));
@@ -1947,7 +1967,7 @@ class StoreOrderRepository extends BaseRepository
             'product_type' => 1,
             'day' => date('Y-m-d', time())
         ];
-        $count = $this->dao->getTattendCount($where, null)->count();
+        $count = $this->dao->getTattendCount($where, null)->sum('product_num');
         $count_ = $this->dao->getSeckillRefundCount($where, 2);
         $count__ = $this->dao->getSeckillRefundCount($where, 1);
         return $count - $count_ - $count__;
@@ -1967,7 +1987,7 @@ class StoreOrderRepository extends BaseRepository
             'product_type' => 1,
             'day' => date('Y-m-d', time())
         ];
-        $count = $this->dao->getTattendCount($where, null)->count();
+        $count = $this->dao->getTattendCount($where, null)->sum('total_num');
         $count_ = $this->dao->getSeckillRefundCount($where, 2);
         $count__ = $this->dao->getSeckillRefundCount($where, 1);
         return $count - $count_ - $count__;
@@ -2000,7 +2020,7 @@ class StoreOrderRepository extends BaseRepository
      * @author Qinii
      * @day 2020-08-15
      */
-    public function getDayPayCount(int $uid, int $productId)
+    public function getDayPayCount(int $uid, int $productId, $cart_num)
     {
         $make = app()->make(StoreSeckillActiveRepository::class);
         $active = $make->getWhere(['product_id' => $productId]);
@@ -2012,8 +2032,13 @@ class StoreOrderRepository extends BaseRepository
             'day' => date('Y-m-d', time())
         ];
 
-        $count = $this->dao->getTattendCount($where, $uid)->count();
-        return ($active['once_pay_count'] > $count);
+        $count = (int)$this->dao->getTattendCount($where, $uid)->sum('total_num');
+        if ($count >= $active['once_pay_count']) {
+            return false;
+        } else if (($count + $cart_num) > $active['once_pay_count']){
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -2024,7 +2049,7 @@ class StoreOrderRepository extends BaseRepository
      * @author Qinii
      * @day 2020-08-15
      */
-    public function getPayCount(int $uid, int $productId)
+    public function getPayCount(int $uid, int $productId,$cart_num)
     {
         $make = app()->make(StoreSeckillActiveRepository::class);
         $active = $make->getWhere(['product_id' => $productId]);
@@ -2034,8 +2059,13 @@ class StoreOrderRepository extends BaseRepository
             'product_type' => 1,
             'day' => date('Y-m-d', time())
         ];
-        $count = $this->dao->getTattendCount($where, $uid)->count();
-        return ($active['all_pay_count'] > $count);
+        $count = (int)$this->dao->getTattendCount($where, $uid)->sum('total_num');
+        if ($count >= $active['all_pay_count']) {
+            return false;
+        } else if (($count + $cart_num) > $active['all_pay_count']){
+            return false;
+        }
+        return true;
     }
 
     /**

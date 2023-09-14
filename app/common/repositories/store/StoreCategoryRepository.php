@@ -51,19 +51,28 @@ class StoreCategoryRepository extends BaseRepository
     {
         if ($merId) {
             $form = Elm::createForm(is_null($id) ? Route::buildUrl('merchantStoreCategoryCreate')->build() : Route::buildUrl('merchantStoreCategoryUpdate', ['id' => $id])->build());
+            $msg = '';
         } else {
             $form = Elm::createForm(is_null($id) ? Route::buildUrl('systemStoreCategoryCreate')->build() : Route::buildUrl('systemStoreCategoryUpdate', ['id' => $id])->build());
+            $msg = '注：平台商品分类请添加至三级分类，商户后台添加商品时才会展示该分类';
         }
+        //注：平台商品分类请添加至三级分类，商户后台添加商品时才会展示该分类。
         $form->setRule([
             Elm::cascader('pid', '上级分类')->options(function () use ($id, $merId) {
-                $menus = $this->dao->getAllOptions($merId,1,$this->dao->getMaxLevel($merId)-1,0);
+                $menus = $this->dao->getAllOptions($merId, 1, $this->dao->getMaxLevel($merId) - 1, 0);
                 if ($id && isset($menus[$id])) unset($menus[$id]);
                 $menus = formatCascaderData($menus, 'cate_name');
                 array_unshift($menus, ['label' => '顶级分类', 'value' => 0]);
                 return $menus;
-            })->props(['props' => ['checkStrictly' => true, 'emitPath' => false]])->filterable(true)->appendValidate(Elm::validateInt()->required()->message('请选择上级分类')),
+            })->props(['props' => ['checkStrictly' => true, 'emitPath' => false]])->filterable(true)->appendValidate(Elm::validateInt()->required()->message('请选择上级分类'))->appendRule('suffix', [
+                'type' => 'div',
+                'style' => ['color' => '#999999'],
+                'domProps' => [
+                    'innerHTML' => $msg,
+                ]
+            ]),
             Elm::input('cate_name', '分类名称')->required(),
-            Elm::frameImage('pic', '分类图片(110*110px)', '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=pic&type=1')->width('896px')->height('480px')->props(['footer' => false])->modal(['modal' => false, 'custom-class' => 'suibian-modal']),
+            Elm::frameImage('pic', '分类图片(110*110px)', '/' . config('admin.' . ($merId ? 'merchant' : 'admin') . '_prefix') . '/setting/uploadPicture?field=pic&type=1')->width('1000px')->height('600px')->props(['footer' => false])->modal(['modal' => false, 'custom-class' => 'suibian-modal']),
             Elm::switches('is_show', '是否显示', 1)->activeValue(1)->inactiveValue(0)->inactiveText('关')->activeText('开'),
             Elm::number('sort', '排序', 0)->precision(0)->max(99999),
         ]);
@@ -93,9 +102,9 @@ class StoreCategoryRepository extends BaseRepository
      * @Date: 2020/5/16
      * @return mixed
      */
-    public function getList($status = null,$lv = null)
+    public function getList($status = null, $lv = null)
     {
-        $menus = $this->dao->getAllOptions(0,$status,$lv,0);
+        $menus = $this->dao->getAllOptions(0, $status, $lv, 0);
         $menus = formatCascaderData($menus, 'cate_name', $lv ?: 3);
         return $menus;
     }
@@ -117,10 +126,10 @@ class StoreCategoryRepository extends BaseRepository
      * @return bool
      * @author Qinii
      */
-    public function checkLevel(int $id,int $level = 0, $merId = null)
+    public function checkLevel(int $id, int $level = 0, $merId = null)
     {
         $check = $this->getLevelById($id);
-        if($level)
+        if ($level)
             $check = $level;
         return ($check < $this->dao->getMaxLevel($merId)) ? true : false;
     }
@@ -132,7 +141,7 @@ class StoreCategoryRepository extends BaseRepository
 
     public function getHot($merId)
     {
-        $hot = $this->dao->getSearch(['is_hot' => 1,'mer_id' => $merId])->hidden(['path','level','mer_id','create_time'])->select();
+        $hot = $this->dao->getSearch(['is_hot' => 1, 'mer_id' => $merId])->hidden(['path', 'level', 'mer_id', 'create_time'])->select();
         if ($hot) $hot->toArray();
         return compact('hot');
     }
@@ -154,5 +163,26 @@ class StoreCategoryRepository extends BaseRepository
             Elm::number('type', '类型', 1)->hiddenStatus(true),
         ]);
         return $form->setTitle(is_null($id) ? '添加分类' : '编辑分类')->formData($formData);
+    }
+
+    public function getAllFatherName($id)
+    {
+        $info = $this->dao->get($id);
+
+        if (empty($info)) {
+            return ' ';
+        }
+
+        if ($info['pid'] > 0) {
+            $parentName = $this->getAllFatherName($info['pid']);
+            return $parentName . '/' . $info['cate_name'];
+        } else {
+            return $info['cate_name'];
+        }
+    }
+
+    public function getCateName($cate_id)
+    {
+        return $this->dao->query([$this->dao->getPk() => $cate_id])->value('cate_name') ?? '';
     }
 }

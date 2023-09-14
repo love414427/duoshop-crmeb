@@ -78,6 +78,7 @@ class WechatService
         $this->application->register(new \crmeb\services\easywechat\combinePay\ServiceProvider);
         $this->application->register(new \crmeb\services\easywechat\pay\ServiceProvider);
         $this->application->register(new \crmeb\services\easywechat\batches\ServiceProvider);
+        $this->application->register(new \crmeb\services\easywechat\wechatTemplate\ServiceProvider);
     }
 
     /**
@@ -991,7 +992,7 @@ class WechatService
     public function getPrivateTemplates()
     {
         try {
-            return $this->application->notice->getPrivateTemplates();
+            return $this->application->new_notice->getPrivateTemplates();
         } catch (\Exception $e) {
             throw new ValidateException($this->getMessage($e->getMessage()));
         }
@@ -1001,10 +1002,10 @@ class WechatService
      * 获得添加模版ID
      * @param $template_id_short
      */
-    public  function addTemplateId($template_id_short)
+    public  function addTemplateId($template_id_short,$keyword_name_list)
     {
         try {
-            return  $this->application->notice->addTemplate($template_id_short);
+            return  $this->application->new_notice->addTemplate($template_id_short,$keyword_name_list);
         } catch (\Exception $e) {
             throw new ValidateException($this->getMessage($e->getMessage()));
         }
@@ -1016,7 +1017,7 @@ class WechatService
     public  function deleleTemplate($template_id)
     {
         try {
-            return  $this->application->notice->deletePrivateTemplate($template_id);
+            return  $this->application->new_notice->deletePrivateTemplate($template_id);
         } catch (\Exception $e) {
             throw new ValidateException($this->getMessage($e->getMessage()));
         }

@@ -92,7 +92,7 @@ class ArticleCategoryRepository extends BaseRepository
 //            })->props(['props' => ['checkStrictly' => true, 'emitPath' => false]]),
             Elm::input('title', '分类名称')->required(),
             Elm::input('info', '分类简介'),
-            Elm::frameImage('image', '分类图片', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=image&type=1')->width('896px')->height('480px')->props(['footer' => false])->modal(['modal' => false, 'custom-class' => 'suibian-modal']),
+            Elm::frameImage('image', '分类图片', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=image&type=1')->width('1000px')->height('600px')->props(['footer' => false])->modal(['modal' => false, 'custom-class' => 'suibian-modal']),
             Elm::switches('status', '状态', 1)->activeValue(1)->inactiveValue(0)->inactiveText('关')->activeText('开'),
             Elm::number('sort', '排序', 0)->precision(0)->max(99999),
         ]);

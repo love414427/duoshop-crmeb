@@ -157,7 +157,7 @@ class QrcodeService
      * @author xaboy
      * @day 2020/6/18
      */
-    public function getRoutineQrcodePath($namePath, $page, $data)
+    public function getRoutineQrcodePath($namePath, $page, $data, $to = 'routine/product')
     {
 
         try {
@@ -165,9 +165,10 @@ class QrcodeService
             if (!$imageInfo) {
                 $res = app()->make(RoutineQrcodeRepository::class)->getPageCode($page, $data, 280);
                 if (!$res) return false;
+
                 $uploadType = (int)systemConfig('upload_type') ?: 1;
                 $upload = UploadService::create($uploadType);
-                $res = $upload->to('routine/product')->validate()->stream($res, $namePath);
+                $res = $upload->to($to)->validate()->stream($res, $namePath);
                 if ($res === false) {
                     return false;
                 }

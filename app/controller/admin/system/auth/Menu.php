@@ -193,9 +193,11 @@ class Menu extends BaseController
     {
         $pre = '/' . config('admin.merchant_prefix');
         $merchant = $this->request->merchant();
-        $menus = $this->request->adminInfo()->level
-            ? $this->repository->ruleByMenuList($this->request->adminRule(), $this->merchant)
-            : ($merchant->type_id ? $this->repository->typesByValidMenuList($merchant->type_id) : $this->repository->getValidMenuList($this->merchant));
+        if ($this->request->adminInfo()->level) {
+            $menus = $this->repository->ruleByMenuList($this->request->adminRule(), $this->merchant);
+        } else {
+            $menus = $merchant->type_id ? $this->repository->typesByValidMenuList($merchant->type_id) : $this->repository->getValidMenuList($this->merchant);
+        }
         foreach ($menus as $k => $menu) {
             $menu['route'] = $pre . $menu['route'];
             $menus[$k] = $menu;

@@ -179,9 +179,12 @@ class MenuDao extends BaseDao
 
     public function typesByValidMenuList($typeId)
     {
-        $paths = Menu::getDB()->alias('A')->leftJoin('Relevance B', 'A.menu_id = B.right_id')->where('is_menu', 1)->where('is_show', 1)
+        $paths = Menu::getDB()->alias('A')->leftJoin('Relevance B', 'A.menu_id = B.right_id')
+//            ->where('is_menu', 1)
+            ->where('is_show', 1)
             ->order('sort DESC,menu_id ASC')
-            ->where('B.left_id', $typeId)->where('B.type', RelevanceRepository::TYPE_MERCHANT_AUTH)
+            ->where('B.left_id', $typeId)
+            ->where('B.type', RelevanceRepository::TYPE_MERCHANT_AUTH)
             ->column('path', 'menu_id');
         $ids = [];
         foreach ($paths as $id => $path) {

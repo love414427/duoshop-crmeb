@@ -204,8 +204,9 @@ class StoreSpu extends BaseController
         } else {
             $where = ['sys_labels' => $this->request->param('labels')];
         }
+        $where['product_type'] = 0;
+        $where['order'] = 'star';
         $data = $this->repository->getApiSearch($where, $page, $limit, null);
-
         return app('json')->success($data);
     }
 
@@ -271,18 +272,13 @@ class StoreSpu extends BaseController
         $data = [];
         foreach ($cateId as $cate_id) {
             $cate = app()->make(StoreCategoryRepository::class)->get($cate_id );
-//            if ($cate) {
                 $list = $this->repository->getHotRanking($cate_id ?: 0);
                 $data[] = [
                     'cate_id' => $cate['store_category_id'] ?? 0,
                     'cate_name' => $cate['cate_name'] ?? '总榜',
                     'list' => $list,
                 ];
-//            }
         }
         return app('json')->success($data);
     }
-
-
-
 }

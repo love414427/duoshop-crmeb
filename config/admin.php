@@ -17,7 +17,8 @@ return [
     //token超时多久可自动续期(后台)
     'token_valid_exp' => 30, //30分钟
     //token超时多久可自动续期(用户)
-    'user_token_valid_exp' => 7, //7天
+    'user_token_valid_exp' => 30, //7天
+    'openapi_token_valid_exp' => 1, //小时
     //登录验证码有效期
     'captcha_exp' => 30, //30分钟
     'admin_prefix' => 'admin',
@@ -26,5 +27,6 @@ return [
     'api_admin_prefix' => 'sys',
     'api_merchant_prefix' => 'mer',
     'api_service_prefix' => 'ser',
+    'api_openapi_prefix' => 'openapi',
     'vic_word_status' => 0,
 ];

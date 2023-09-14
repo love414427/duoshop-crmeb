@@ -57,7 +57,7 @@ class FinancialRepository extends BaseRepository
                         'rule'=> [
                             Elm::input('name', '姓名')->value($merchant->financial_wechat->name??'')->required(),
                             Elm::input('wechat', '微信号')->value($merchant->financial_wechat->wechat??'')->required(),
-                            Elm::frameImage('wechat_code', '收款二维码', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=wechat_code&type=1')->value($merchant->financial_wechat->wechat_code??'')->modal(['modal' => false])->width('896px')->height('480px'),
+                            Elm::frameImage('wechat_code', '收款二维码', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=wechat_code&type=1')->value($merchant->financial_wechat->wechat_code??'')->modal(['modal' => false])->width('1000px')->height('600px'),
                         ]
                     ],
                     [
@@ -65,7 +65,7 @@ class FinancialRepository extends BaseRepository
                         'rule'=> [
                             Elm::input('name', '姓名')->value($merchant->financial_alipay->name??'')->required(),
                             Elm::input('alipay', '支付宝账号')->value($merchant->financial_alipay->alipay??'')->required(),
-                            Elm::frameImage('alipay_code', '收款二维码', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=alipay_code&type=1')->value($merchant->financial_alipay->alipay_code??'')->modal(['modal' => false])->width('896px')->height('480px'),
+                            Elm::frameImage('alipay_code', '收款二维码', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=alipay_code&type=1')->value($merchant->financial_alipay->alipay_code??'')->modal(['modal' => false])->width('1000px')->height('600px'),
                         ]
                     ],
 
@@ -630,8 +630,8 @@ class FinancialRepository extends BaseRepository
                     'type' => 'img',
                     'title' => '收款二维码：',
                     'native' => false,
-                    'attrs' => ['src' => $merchant->account->pic ?? ''],
-                    'style' => ['width' => '86px','height' => '48px']
+                    'attrs' => ['src' => $data['merchant']->financial_wechat->wechat_code ?? ''],
+                    'style' => ['width' => '100px','height' => '100px']
                 ];
             }
         }

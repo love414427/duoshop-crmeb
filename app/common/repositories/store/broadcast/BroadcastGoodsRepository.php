@@ -88,7 +88,7 @@ class BroadcastGoodsRepository extends BaseRepository
             ];
         }
         return Elm::createForm((isset($formData['broadcast_goods_id']) ? Route::buildUrl('merchantBroadcastGoodsUpdate', ['id' => $formData['broadcast_goods_id']]) : Route::buildUrl('merchantBroadcastGoodsCreate'))->build(), [
-            Elm::frameImage('product_id', '商品', '/' . config('admin.merchant_prefix') . '/setting/storeProduct?field=product_id')->width('60%')->height('536px')->props(['srcKey' => 'src'])->modal(['modal' => false])->appendValidate(Elm::validateObject()->message('请选择商品')),
+            Elm::frameImage('product_id', '商品', '/' . config('admin.merchant_prefix') . '/setting/storeProduct?field=product_id')->width('1000px')->height('600px')->props(['srcKey' => 'src'])->modal(['modal' => false])->appendValidate(Elm::validateObject()->message('请选择商品')),
             Elm::input('name', '商品名称')->required(),
             Elm::frameImage('cover_img', '商品图', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=cover_img&type=1')
                 ->info('图片尺寸最大像素 300*300')->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false])->required(),

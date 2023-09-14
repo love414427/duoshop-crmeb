@@ -16,6 +16,35 @@ use app\common\middleware\AllowOriginMiddleware;
 use app\common\middleware\LogMiddleware;
 
 Route::group(function () {
+    Route::group('spread/order', function () {
+        Route::get('lst', 'Order/getAllList')->name('systemOrderLst')->option([
+            '_alias' => '列表',
+        ]);
+        Route::get('title', 'Order/title')->name('systemSpreadOrderStat')->option([
+            '_alias' => '金额统计',
+        ]);
+        Route::get('express/:id', 'Order/express')->name('systemSpreadOrderExpress')->option([
+            '_alias' => '快递查询',
+        ]);
+        Route::get('chart', 'Order/spreadChart')->name('systemSpreadOrderTitle')->option([
+            '_alias' => '头部统计',
+        ]);
+        Route::get('detail/:id', 'Order/detail')->name('systemSpreadOrderDetail')->option([
+            '_alias' => '详情',
+        ]);
+        Route::get('excel', 'Order/Excel')->name('systemSpreadOrderExcel')->option([
+            '_alias' => '导出',
+        ]);
+        Route::get('status/:id', 'Order/status')->name('systemSpreadOrderStatus')->option([
+            '_alias' => '记录',
+        ]);
+        Route::get('children/:id', 'Order/childrenList')->name('systemSpreadOrderChildrenList')->option([
+            '_alias' => '关联订单',
+        ]);
+    })->prefix('admin.order.')->option([
+        '_path' => '/promoter/orderList',
+        '_auth' => true,
+    ])->append(['is_spread' => 1]);
 
     Route::group('order', function () {
         Route::get('lst', 'Order/getAllList')->name('systemOrderLst')->option([

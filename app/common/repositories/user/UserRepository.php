@@ -75,8 +75,8 @@ class UserRepository extends BaseRepository
             Elm::input('nickname', '用户昵称')->required(),
             Elm::frameImage('avatar', '头像', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=avatar&type=1')
                 ->modal(['modal' => false])
-                ->width('896px')
-                ->height('480px'),
+                ->width('1000px')
+                ->height('600px'),
             Elm::input('real_name', '真实姓名'),
             Elm::input('phone', '手机号'),
 
@@ -204,7 +204,7 @@ class UserRepository extends BaseRepository
         $total = $this->dao->search($where)
             ->field('sum(spread_count) as spread_count,sum(spread_pay_count) as spread_pay_count,sum(spread_pay_price) as spread_pay_price,count(uid) as total_user,sum(brokerage_price) as brokerage_price')->find();
         $total = $total ? $total->toArray() : ['spread_count' => 0, 'spread_pay_count' => 0, 'spread_pay_price' => 0, 'total_user' => 0, 'brokerage_price' => 0];
-        $total['total_extract'] = app()->make(UserExtractRepository::class)->getTotalExtractPrice();
+        $total['total_extract'] = app()->make(UserExtractRepository::class)->getTotalExtractPrice($where);
         return [
             [
                 'className' => 'el-icon-s-goods',
@@ -1224,7 +1224,7 @@ class UserRepository extends BaseRepository
             Elm::frameImage('spid', '上级推荐人', '/' . config('admin.admin_prefix') . '/setting/referrerList?field=spid')->prop('srcKey', 'src')->value($user->spread ? [
                 'src' => $user->spread->avatar,
                 'id' => $user->spread->uid,
-            ] : [])->modal(['modal' => false])->width('896px')->height('480px'),
+            ] : [])->modal(['modal' => false])->width('1000px')->height('600px'),
         ]);
         return $form->setTitle('修改推荐人');
     }
@@ -1430,7 +1430,7 @@ class UserRepository extends BaseRepository
         if ($user['is_svip'] == 3 && $data['is_svip'] == 1)
             throw new ValidateException('该用户已是永久付费会员');
         if ($data['is_svip']) {
-            $day = ($data['type'] == 1 ? '+ ' : '- ').$data['add_time'];
+            $day = ($data['type'] == 1 ? '+ ' : '- '). (int)$data['add_time'];
             $endtime = ($user['svip_endtime'] && $user['is_svip'] != 0) ? $user['svip_endtime'] : date('Y-m-d H:i:s',time());
             $is_svip = 1;
             $svip_endtime =  date('Y-m-d H:i:s',strtotime("$endtime  $day day" ));
@@ -1481,5 +1481,23 @@ class UserRepository extends BaseRepository
                 ]));
             }
         });
+    }
+
+    /**
+     * 获取默认删除用户信息
+     * @param array $user_info
+     * @param array $append_info
+     * @return array
+     *
+     * @date 2023/09/07
+     * @author yyw
+     */
+    public function getDelUserInfo(array $user_info = [], array $append_info = [])
+    {
+        return [
+                'nickname' => $user_info['nickname'] ?? '用户已被删除',
+                'phone' => $user_info['phone'] ?? '00000000000',
+                'uid' => $user_info['uid'] ?? '-1'
+            ] + $append_info;
     }
 }

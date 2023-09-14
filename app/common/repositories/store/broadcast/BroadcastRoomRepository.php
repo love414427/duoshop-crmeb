@@ -105,13 +105,13 @@ class BroadcastRoomRepository extends BaseRepository
         return Elm::createForm(Route::buildUrl('merchantBroadcastRoomCreate')->build(), [
             Elm::input('name', '直播间名字')->required(),
             Elm::frameImage('cover_img', '背景图', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=cover_img&type=1')
-                ->info('建议像素1080*1920，大小不超过2M')->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false])->required(),
+                ->info('建议像素1080*1920，大小不超过2M')->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false])->required(),
 
             Elm::frameImage('share_img', '分享图', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=share_img&type=1')
-                ->info('建议像素800*640，大小不超过1M')->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false])->required(),
+                ->info('建议像素800*640，大小不超过1M')->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false])->required(),
 
             Elm::frameImage('feeds_img', '封面图', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=feeds_img&type=1')
-                ->info('建议像素800*800，大小不超过1M')->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false])->required(),
+                ->info('建议像素800*800，大小不超过1M')->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false])->required(),
 
             Elm::input('anchor_name', '主播昵称')->required()->placeholder('请输入主播昵称，主播需通过小程序直播认证，否则会提交失败。'),
             Elm::input('anchor_wechat', '主播微信号')->required()->placeholder('请输入主播微信号，主播需通过小程序直播认证，否则会提交失败。'),

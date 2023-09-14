@@ -220,7 +220,7 @@ class ProductGroupBuyingRepository extends BaseRepository
                     ->getSearch([])
                     ->whereIn('order_id', $orderIds)
                     ->update(['status' => 0]);
-                Queue::push(SendSmsJob::class, ['tempId' => 'USER_BALANCE_CHANGE', 'id' => $res->group_buying_id]);
+                Queue::push(SendSmsJob::class, ['tempId' => 'GROUP_BUYING_SUCCESS', 'id' => $res->group_buying_id]);
             });
         }
 
@@ -297,9 +297,11 @@ class ProductGroupBuyingRepository extends BaseRepository
         ])->hidden(['ficti_status','ficti_num'])->find();
         if(!$data) throw new ValidateException('无此团信息');
         $make = app()->make(ProductRepository::class);
-        $data['product'] = $make->apiProductDetail(['product_id' => $data->productGroup['product_id']],4,$data->productGroup['product_group_id']);
-        $data['product']['ot_price'] = $data['product']['price'];
-        $data['product']['price'] = $data->productGroup['price'];
+        $product = $make->apiProductDetail(['product_id' => $data->productGroup['product_id']],4,$data->productGroup['product_group_id']);
+        $product['ot_price'] = $product['price'];
+        $product['price'] = $data->productGroup['price'];
+        $data['product'] = $product;
+
         if($userInfo) {
             $make = app()->make(ProductGroupUserRepository::class);
             $data['self'] = $make->getSearch(['group_buying_id' => $id,'uid' => $userInfo->uid,'is_del' => 0])->find();

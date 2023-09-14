@@ -29,6 +29,7 @@ class MerchantUpdateValidate extends Validate
         'mer_address|店铺地址' => 'require|max:128',
         'long|店铺经度' => 'max:24',
         'lat|店铺纬度' => 'max:24',
+        'services_type|联系客服方式' => 'require|in:0,1',
     ];
 
     protected function isPhone($val)

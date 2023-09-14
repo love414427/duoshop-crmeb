@@ -75,9 +75,8 @@ class Community extends BaseController
     public  function videoShow()
     {
         [$page, $limit] = $this->getPage();
-        if ($page == 1) $limit = $limit -1;
+        $where = $this->repository::IS_SHOW_WHERE;
         $where['community_id'] = $this->request->param('id','');
-        $where = array_merge($where,$this->repository::IS_SHOW_WHERE);
         return app('json')->success($this->repository->getApiVideoList($where, $page, $limit, $this->user));
     }
 
@@ -97,9 +96,10 @@ class Community extends BaseController
         ];
         $where['uids'] = $relevanceRepository->getSearch($where_)->column('right_id');
         [$page, $limit] = $this->getPage();
-        if ($page == 1) $limit = $limit -1;
-        $type = $this->request->param('type');
-        if ($type) $where['is_type'] = $this->repository::COMMUNIT_TYPE_VIDEO;
+        $type = $this->request->param('type',0);
+        if ($type) {
+            $where['is_type'] = $this->repository::COMMUNIT_TYPE_VIDEO;
+        }
         return app('json')->success($this->repository->getApiList($where, $page, $limit, $this->user));
     }
 

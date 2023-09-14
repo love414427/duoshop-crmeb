@@ -51,6 +51,7 @@ class StoreProductSeckill extends BaseController
         $where['mer_id'] = $this->request->param('mer_id','');
         $where['start_time'] = $this->request->param('start_time','');
         $where['end_time'] = $this->request->param('end_time','');
+
         $data = $this->repository->getApiSeckill($where,$page, $limit);
         return app('json')->success($data);
     }

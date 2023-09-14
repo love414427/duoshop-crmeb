@@ -290,7 +290,7 @@ class ProductPresellRepository extends BaseRepository
             app()->make(SpuRepository::class)->changeStatus($id,2);
             throw new ValidateException('商品已下架');
         }
-        if ($data['pay_count'] && $userInfo->uid) {
+        if ($data['pay_count'] && $userInfo) {
             $_count = app()->make(StoreOrderRepository::class)->getTattendCount([
                 'activity_id' => $id,
                 'product_type' => 2,
@@ -299,7 +299,9 @@ class ProductPresellRepository extends BaseRepository
             $data['self_count'] = ($_count >= $data['pay_count']) ? 0 : ($data['pay_count'] - $_count);
         }
         $make = app()->make(ProductRepository::class);
-        $data['product'] = $make->apiProductDetail(['product_id' => $data['product_id']], 2, $id,$userInfo);
+        $product = $make->apiProductDetail(['product_id' => $data['product_id']], 2, $id,$userInfo)->toArray();
+        $show = $make->getProductShow($data['product_id'],$product,$id,$userInfo->uid ?? 0);
+        $data['product'] = array_merge($product,$show);
         return $data;
     }
 

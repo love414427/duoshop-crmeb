@@ -75,9 +75,9 @@ class UserExtractRepository extends BaseRepository
         return compact('count', 'list');
     }
 
-    public function getTotalExtractPrice()
+    public function getTotalExtractPrice($where = [])
     {
-        return $this->dao->search(['status' => 1])->sum('extract_price');
+        return $this->dao->search($where + ['status' => 1])->sum('extract_price');
     }
 
     /**

@@ -140,6 +140,9 @@ Route::group(function () {
         Route::post('changecopy/:id', '.Merchant/changeCopyNum')->name('systemMerchantChangeCopy')->option([
             '_alias' => '修改采集商品次数',
             ]);
+        Route::get('detail/:id', '.Merchant/detail')->name('systemMerchantDetail')->option([
+            '_alias' => '详情',
+        ]);
     })->prefix('admin.system.merchant')->option([
         '_path' => '/merchant/list',
         '_auth' => true,

@@ -43,7 +43,7 @@ class ProductCopyRepository extends BaseRepository
 
     public function getProduct($url,$merId)
     {
-        $key = $merId.'_url_'.$url;
+        $key = $merId.'_url_'.json_encode($url);
         if ($result= Cache::get($key)) return $result;
         if (systemConfig('copy_product_status') == 1) {
             $resultData = $this->useApi($url);
@@ -54,14 +54,13 @@ class ProductCopyRepository extends BaseRepository
         if ($resultData['status'] && $resultData['status']) {
             $result = $this->getParamsData($resultData['data']);
             Cache::set($key,$result);
-            $this->add(['type' => 'copy', 'num' => -1, 'info' => $url , 'mer_id' => $merId, 'message' => '采集商品',],$merId);
-            return $result;
         } else {
             if (isset($resultData['msg']))
                 throw  new ValidateException('接口错误信息:'.$resultData['msg']);
             throw  new ValidateException('采集失败，请更换链接重试！');
         }
-
+        $this->add(['type' => 'copy', 'num' => -1, 'info' => $url , 'mer_id' => $merId, 'message' => '采集商品',],$merId);
+        return $result;
     }
 
     /**
@@ -183,16 +182,24 @@ class ProductCopyRepository extends BaseRepository
      */
     public function downloadImage($id, $data)
     {
-        foreach ($data as $param) {
-            if (in_array($param,$this->updateImage)) {
-                $res[$param] = $this->getImageByUrl($data[$param]);
+        foreach ($data as $key => $param) {
+            if (in_array($key,$this->updateImage)) {
+                $res[$key] = $this->getImageByUrl($param, $data['mer_id'] ?? 0, $data['admin_id'] ?? 0);
             }
         }
-        $data['content'] = $this->getDescriptionImage($data['content']);
+        $data['content'] = $this->getDescriptionImage($data);
         $make = app()->make(ProductRepository::class);
         try{
-            $make->update($id, $res);
-            $make->createContent($id, $res);
+            if(!empty($res)){
+                if(!empty($res['slider_image'])){
+                    $res['slider_image'] = is_array($res['slider_image']) ? implode(',', $res['slider_image']) : '';
+                }
+                $make->update($id, $res);
+            }
+            if (!empty($data['content'])) {
+                app()->make(ProductContentRepository::class)->clearAttr($id, $data['type'] ?? 0);
+                $make->createContent($id, ['content' => $data['content'], 'type' => $data['type'] ?? 0]);
+            }
         }catch (Exception $exception) {
 
         }
@@ -206,12 +213,13 @@ class ProductCopyRepository extends BaseRepository
      * @author Qinii
      * @day 2022/11/11
      */
-    public function getDescriptionImage($html)
+    public function getDescriptionImage($data)
     {
+        $html = $data['content'];
         preg_match_all('#<img.*?src="([^"]*)"[^>]*>#i', $html, $match);
         if (isset($match[1])) {
             foreach ($match[1] as $item) {
-                $uploadValue = $this->getImageByUrl($item);
+                $uploadValue = $this->getImageByUrl($item, $data['mer_id'] ?? 0, $data['admin_id'] ?? 0);
                 //下载成功更新数据库
                 if ($uploadValue) {
                     //替换图片
@@ -232,10 +240,15 @@ class ProductCopyRepository extends BaseRepository
      * @author Qinii
      * @day 2022/11/11
      */
-    public function getImageByUrl($data)
+    public function getImageByUrl($data, $merId = 0, $adminId = 0)
     {
-        $merId = request()->merId();
-        $category = app()->make( AttachmentCategoryRepository::class)->findOrCreate([
+        if (empty($merId)) {
+            $merId = request()->merId();
+        }
+        if (empty($adminId)) {
+            $merId = request()->merAdminId();
+        }
+        $category = app()->make(AttachmentCategoryRepository::class)->findOrCreate([
             'attachment_category_enname' => $this->AttachmentCategoryPath,
             'attachment_category_name' => $this->AttachmentCategoryName,
             'mer_id' => $merId,
@@ -247,27 +260,27 @@ class ProductCopyRepository extends BaseRepository
 
         if (is_array($data)) {
             foreach ($data as $datum) {
-                $arcurl =  is_int(strpos($datum, 'http')) ? $datum : 'http://' . ltrim( $datum, '\//');
-                $image = $serve->downloadImage($arcurl,$this->AttachmentCategoryPath);
-                $dir = $type == 1 ? rtrim(systemConfig('site_url'), '/').$image['path'] : $image['path'];
+                $arcurl = is_int(strpos($datum, 'http')) ? $datum : 'http://' . ltrim($datum, '\//');
+                $image = $serve->downloadImage($arcurl, $this->AttachmentCategoryPath);
+                $dir = $type == 1 ? rtrim(systemConfig('site_url'), '/') . $image['path'] : $image['path'];
                 $data = [
                     'attachment_category_id' => $category->attachment_category_id,
                     'attachment_name' => $image['name'],
                     'attachment_src' => $dir
                 ];
-                $make->create($type,$merId, request()->adminId(), $data);
+                $make->create($type, $merId, $adminId, $data);
                 $res[] = $dir;
             }
         } else {
-            $arcurl =  is_int(strpos($data, 'http')) ? $data : 'http://' . ltrim( $data, '\//');
-            $image = $serve->downloadImage($arcurl,$this->AttachmentCategoryPath);
-            $dir = $type == 1 ? rtrim(systemConfig('site_url'), '/').$image['path'] : $image['path'];
+            $arcurl = is_int(strpos($data, 'http')) ? $data : 'http://' . ltrim($data, '\//');
+            $image = $serve->downloadImage($arcurl, $this->AttachmentCategoryPath);
+            $dir = $type == 1 ? rtrim(systemConfig('site_url'), '/') . $image['path'] : $image['path'];
             $data = [
                 'attachment_category_id' => $category->attachment_category_id,
                 'attachment_name' => $image['name'],
                 'attachment_src' => $dir
             ];
-            $make->create($type,$merId, request()->adminId(), $data);
+            $make->create($type, $merId, $adminId, $data);
             $res = $dir;
         }
         return $res;
@@ -334,10 +347,10 @@ class ProductCopyRepository extends BaseRepository
      */
     public function defaulCopyNum($merId)
     {
-        if(systemConfig('copy_product_status')){
+        if(systemConfig('copy_product_status') && systemConfig('copy_product_defaul')){
             $data = [
                 'type' => 'sys',
-                'num' => systemConfig('copy_product_defaul') ?? 0,
+                'num' => systemConfig('copy_product_defaul'),
                 'message' => '赠送次数',
             ];
             $this->add($data,$merId);

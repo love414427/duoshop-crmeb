@@ -89,7 +89,7 @@ class Jdoss extends BaseUpload
 
     protected $cache = [];
     protected $cacheSize = 0;
-
+    protected $upload_max_size;
     /**
      * 初始化
      * @param array $config
@@ -106,6 +106,7 @@ class Jdoss extends BaseUpload
         $this->cdn = $config['cdn'] ?? null;
         $this->thumb_status = $config['thumb_status'];
         $this->thumb_rate = $config['thumb_rate'];
+        $this->upload_max_size = $config['upload_max_size'];
     }
 
     /**
@@ -135,6 +136,7 @@ class Jdoss extends BaseUpload
     public function move(string $file = 'file',$thumb = true)
     {
         $fileHandle = app()->request->file($file);
+        if ($this->upload_max_size && $fileHandle->getSize() < $this->upload_max_size) $this->thumb_status = false;
         if (!$fileHandle) {
             return $this->setError('Upload file does not exist');
         }

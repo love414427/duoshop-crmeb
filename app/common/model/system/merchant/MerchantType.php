@@ -35,4 +35,8 @@ class MerchantType extends BaseModel
     {
         return $this->hasMany(Relevance::class, 'left_id', 'mer_type_id')->where('type', RelevanceRepository::TYPE_MERCHANT_AUTH);
     }
+    public function getMerchantCountAttr()
+    {
+        return Merchant::where('type_id',$this->mer_type_id)->where('status',1)->count();
+    }
 }

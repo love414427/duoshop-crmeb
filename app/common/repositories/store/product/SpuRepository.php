@@ -20,6 +20,7 @@ use crmeb\jobs\SyncProductTopJob;
 use crmeb\services\CopyCommand;
 use crmeb\services\RedisCacheService;
 use think\exception\ValidateException;
+use think\facade\Cache;
 use think\facade\Log;
 use app\common\repositories\BaseRepository;
 use app\common\dao\store\product\SpuDao;
@@ -178,7 +179,6 @@ class SpuRepository extends BaseRepository
     public function changeStatus(int $id, int $productType)
     {
         $make = app()->make(ProductRepository::class);
-
         $status = 1;
         try {
             switch ($productType) {
@@ -284,7 +284,8 @@ class SpuRepository extends BaseRepository
                     ];
                     break;
             }
-            $ret = $make->getWhere(['product_id' => $where['product_id']]);
+            if (empty($where)) return ;
+            $ret = $make->getWhere(['product_id' => $where['product_id'],'product_type' => $productType]);
             if (
                 !$ret ||
                 $ret['status'] !== 1 ||
@@ -343,7 +344,7 @@ class SpuRepository extends BaseRepository
      */
     public function updateSpu(?array $productType)
     {
-        if (!$productType) $productType = [0, 1, 2, 3, 4];
+        if (!$productType) $productType = [0, 1, 2, 3, 4,20];
         $_product_make = app()->make(ProductRepository::class);
         $data = [];
         foreach ($productType as $value) {
@@ -500,7 +501,7 @@ class SpuRepository extends BaseRepository
         return $data;
     }
 
-    public function getHotRanking(int $cateId)
+    public function getHotRanking(int $cateId, $limit = 15)
     {
         $RedisCacheService = app()->make(RedisCacheService::class);
         $prefix = env('queue_name','merchant').'_hot_ranking_';
@@ -516,7 +517,7 @@ class SpuRepository extends BaseRepository
         $where['product_type'] = 0;
         $where['order'] = 'sales';
         $where['spu_ids'] = $ids;
-        $list = $this->dao->search($where)->setOption('field',[])->field('spu_id,S.image,S.price,S.product_type,P.product_id,P.sales,S.status,S.store_name,P.ot_price,P.cost')->select();
+        $list = $this->dao->search($where)->setOption('field',[])->field('spu_id,S.image,S.price,S.product_type,P.product_id,P.sales,S.status,S.store_name,P.ot_price,P.cost')->limit($limit)->select();
         if ($list) $list = $list->toArray();
         return $list;
     }

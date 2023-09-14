@@ -22,6 +22,8 @@ use app\common\repositories\store\product\ProductPresellRepository;
 use app\common\repositories\store\product\ProductRepository;
 use app\common\repositories\store\shipping\ExpressRepository;
 use app\common\repositories\store\StoreCategoryRepository;
+use app\common\repositories\system\attachment\AttachmentCategoryRepository;
+use app\common\repositories\system\attachment\AttachmentRepository;
 use app\common\repositories\system\CacheRepository;
 use app\common\repositories\system\diy\DiyRepository;
 use app\common\repositories\system\groupData\GroupDataRepository;
@@ -100,27 +102,28 @@ class Common extends BaseController
 
     public function config()
     {
-        $config = systemConfig(['open_update_info', 'store_street_theme', 'is_open_service', 'is_phone_login', 'global_theme', 'integral_status', 'mer_location', 'alipay_open', 'hide_mer_status', 'mer_intention_open', 'share_info', 'share_title', 'share_pic', 'store_user_min_recharge', 'recharge_switch', 'balance_func_status', 'yue_pay_status', 'site_logo', 'routine_logo', 'site_name', 'login_logo', 'procudt_increase_status', 'sys_extension_type', 'member_status', 'copy_command_status', 'community_status','community_reply_status','community_app_switch', 'withdraw_type', 'recommend_switch', 'member_interests_status', 'beian_sn', 'community_reply_auth','hot_ranking_switch','svip_switch_status','margin_ico','margin_ico_switch']);
-        $make = app()->make(TemplateMessageRepository::class);
+        $config = Cache::remember('get_api_config',function(){
+            $config = systemConfig(['open_update_info', 'store_street_theme', 'is_open_service', 'is_phone_login', 'global_theme', 'integral_status', 'mer_location', 'alipay_open', 'hide_mer_status', 'mer_intention_open', 'share_info', 'share_title', 'share_pic', 'store_user_min_recharge', 'recharge_switch', 'balance_func_status', 'yue_pay_status', 'site_logo', 'routine_logo', 'site_name', 'login_logo', 'procudt_increase_status', 'sys_extension_type', 'member_status', 'copy_command_status', 'community_status','community_reply_status','community_app_switch', 'withdraw_type', 'recommend_switch', 'member_interests_status', 'beian_sn', 'community_reply_auth','hot_ranking_switch','svip_switch_status','margin_ico','margin_ico_switch','first_avatar_switch','wechat_phone_switch','community_auth']);
+            $cache = app()->make(CacheRepository::class)->search(['copyright_status', 'copyright_context', 'copyright_image', 'sys_intention_agree']);
 
-        $cache = app()->make(CacheRepository::class)->search(['copyright_status', 'copyright_context', 'copyright_image', 'sys_intention_agree']);
+            if (!isset($cache['sys_intention_agree'])) {
+                $cache['sys_intention_agree'] = systemConfig('sys_intention_agree');
+            }
 
-        if (!isset($cache['sys_intention_agree'])) {
-            $cache['sys_intention_agree'] = systemConfig('sys_intention_agree');
-        }
+            $title = app()->make(UserSignRepository::class)->signConfig();
+            if (!$title) {
+                $config['member_status'] = 0;
+            }
+            if (!is_array($config['withdraw_type'])) {
+                $config['withdraw_type'] = ['1', '2', '3'];
+            }
 
-        $title = app()->make(UserSignRepository::class)->signConfig();
-        if (!$title) {
-            $config['member_status'] = 0;
-        }
-        if (!is_array($config['withdraw_type'])) {
-            $config['withdraw_type'] = ['1', '2', '3'];
-        }
-
-        $config['tempid'] = app()->make(SystemNoticeConfigRepository::class)->getSubscribe();
-        $config['global_theme'] = $this->getThemeVar($config['global_theme']);
-        $config['navigation'] = app()->make(DiyRepository::class)->getNavigation();
-        $config = array_merge($config, $cache);
+            $config['tempid'] = app()->make(SystemNoticeConfigRepository::class)->getSubscribe();
+            $config['global_theme'] = $this->getThemeVar($config['global_theme']);
+//            $config['navigation'] = app()->make(DiyRepository::class)->getNavigation();
+            $config = array_merge($config, $cache);
+            return $config;
+        }, 3600);
         return app('json')->success($config);
     }
 
@@ -173,6 +176,66 @@ class Common extends BaseController
         return app('json')->success('上传成功', ['path' => $res['dir']]);
     }
 
+    public function scanUploadImage($field, $token, AttachmentCategoryRepository $repository)
+    {
+        $id = $this->request->param('pid');
+        $merId = $this->request->param('mer_id',0);
+        $_merId = Cache::get('scan_mer_'.$token);
+        if ($merId != $_merId) return app('json')->fail('商户ID错误，请重新扫码上传');
+        $name = $this->request->param('name');
+        $file = $this->request->file($field);
+        if (!$file)
+            return app('json')->fail('请上传图片');
+        if ($name) {
+            $f = $this->request->getOriginFile($field);
+            if ($f) {
+                $f['name'] = $name;
+            }
+            $this->request->setOriginFile($field, $f);
+            $file = $this->request->file($field);
+        }
+        if (!$file)
+            return app('json')->fail('请上传图片');
+        $file = is_array($file) ? $file[0] : $file;
+        if ($id) {
+            if (!$category = $repository->get($id, $merId))
+                return app('json')->fail('目录不存在');
+            $info = [
+                'enname' => $category->attachment_category_enname,
+                'id' => $category->attachment_category_id
+            ];
+        } else {
+            $info = [
+                'enname' => 'def',
+                'id' => 0
+            ];
+        }
+        validate(["$field|图片" => [
+            'fileSize' => config('upload.filesize'),
+            'fileExt' => 'jpg,jpeg,png,bmp,gif',
+            'fileMime' => config('upload.image_fileMime'),
+        ]])->check([$field => $file]);
+
+        $type = (int)systemConfig('upload_type') ?: 1;
+        $upload = UploadService::create($type);
+        $data = $upload->to($info['enname'])->move($field);
+        if ($data === false) {
+            return app('json')->fail($upload->getError());
+        }
+        $res = $upload->getUploadInfo();
+        $res['dir'] = tidy_url($res['dir']);
+        $_name = '.' . $file->getOriginalExtension();
+        $data = [
+            'attachment_category_id' => $info['id'],
+            'attachment_name' => str_replace($_name, '', $file->getOriginalName()),
+            'attachment_src' => $res['dir']
+        ];
+        $attach = app()->make(AttachmentRepository::class)->create((int)$type, (int)$merId, 0, $data);
+        Cache::sadd('scan_'.$token,$attach->attachment_id);
+        return app('json')->success(['src' => $data['attachment_src']]);
+    }
+
+
     /**
      * @return Response
      * @author xaboy
@@ -221,6 +284,7 @@ class Common extends BaseController
     public function routineNotify()
     {
         try {
+            Log::info('支付回调header:' . var_export([$this->request->header()], true));
             if($this->request->header('content-type') === 'application/json'){
                 return response(MiniProgramService::create()->handleNotifyV3()->getContent());
             }
@@ -293,7 +357,7 @@ class Common extends BaseController
         $activity_lst = systemGroupData('sys_activity', 1, 3);
         $ad = systemConfig(['home_ad_pic', 'home_ad_url']);
         $category = app()->make(StoreCategoryRepository::class)->getTwoLevel();
-        return app('json')->success(compact('banner', 'menu', 'hot', 'ad', 'category', 'activity', 'activity_lst'));
+        return app('json')->success(compact('banner', 'menu', 'hot', 'ad','activity', 'activity_lst','category'));
     }
 
     public function activityLst($id)
@@ -441,8 +505,14 @@ class Common extends BaseController
 
     public function diy()
     {
-        $merid = $this->request->param('id', 0);
-        return app('json')->success(app()->make(DiyRepository::class)->getDiyInfo(0, $merid));
+        $merId = $this->request->param('id', 0);
+        $id = $this->request->param('did', 0);
+        $version = $this->request->param('version', 0);
+        $data = app()->make(DiyRepository::class)->show($merId, $id, 1);
+        if($version){
+            return app('json')->encode($data);
+        }
+        return app('json')->success($data['data']);
     }
 
     public function getNavigation()
@@ -452,8 +522,17 @@ class Common extends BaseController
 
     public function micro()
     {
+        $version = $this->request->param('version', 0);
         $id = $this->request->param('id', 0);
-        return app('json')->success(app()->make(DiyRepository::class)->getDiyInfo($id, 0, 0));
+        $data = Cache::remember('sys.get_sys_micro_'.$id,function()use($id){
+            $data = app()->make(DiyRepository::class)->getMicro($id);
+            return json_encode($data, JSON_UNESCAPED_UNICODE);
+        }, 3600);
+        $data = json_decode($data, true);
+        if($version){
+            return app('json')->encode($data);
+        }
+        return app('json')->success($data['data']);
     }
 
     /**

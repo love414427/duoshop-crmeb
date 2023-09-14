@@ -46,4 +46,9 @@ class Attachment extends BaseModel
     {
         return $this->hasMany(self::class, 'pid', 'config_classify_id');
     }
+
+    public function searchIdsAttr($query, $value)
+    {
+        return $query->whereIn('attachment_id',$value);
+    }
 }

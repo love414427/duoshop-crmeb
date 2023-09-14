@@ -44,7 +44,11 @@ class UserExtractDao extends  BaseDao
             $query->where('UserExtract.real_name','%'.$where['real_name'].'%');
         })->when(isset($where['date']) && $where['date'] != '',function($query)use($where){
             getModelTime($query, $where['date']);
-        })->order('UserExtract.create_time DESC');
+        })->when(isset($where['brokerage_level']) && $where['brokerage_level'], function ($query) use ($where) {
+            $query->join('User user', 'UserExtract.uid = user.uid', 'left')->where('user.brokerage_level', intval($where['brokerage_level']));
+       })->when(isset($where['user_keyword']) && $where['user_keyword'], function ($query) use ($where) {
+           $query->join('User user', 'UserExtract.uid = user.uid', 'left')->where('user.uid|user.real_name|user.nickname|user.phone', 'like', '%' . $where['keyword'] . '%');
+       })->order('UserExtract.create_time DESC');
 
         return $query;
     }

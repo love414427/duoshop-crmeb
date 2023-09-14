@@ -19,9 +19,9 @@ return [
     //上传文件大小
     'filesize' => 52428800,
     //上传文件后缀类型
-    'fileExt' => ['jpg', 'jpeg', 'png', 'gif','webp', 'pem', 'mp3', 'wma', 'wav', 'amr', 'mp4', 'key','xlsx','xls','ico'],
+    'fileExt' => ['jpg', 'jpeg', 'png', 'gif','webp', 'pem', 'mp3', 'wma', 'wav', 'amr', 'mp4', 'key','xlsx','xls','ico','avif'],
     //上传文件类型
-    'fileMime' => ['image/jpeg', 'image/gif', 'image/png','image/webp', 'text/plain', 'audio/mpeg', 'image/vnd.microsoft.icon'],
+    'fileMime' => ['image/jpeg', 'image/gif', 'image/png','image/webp', 'text/plain', 'audio/mpeg', 'image/vnd.microsoft.icon','image/avif'],
     //驱动模式
     'stores' => [
         //本地上传配置
@@ -41,7 +41,7 @@ return [
         //天翼云
         'ctoss' => [],
     ],
-    'iamge_fileExt' => ['jpg', 'jpeg', 'png', 'gif','webp'],
+    'iamge_fileExt' => ['jpg', 'jpeg', 'png', 'gif','webp','avif'],
     //上传文件类型
-    'image_fileMime' => ['image/jpeg', 'image/gif', 'image/png','image/webp'],
+    'image_fileMime' => ['image/jpeg', 'image/gif', 'image/png','image/webp', 'image/avif'],
 ];

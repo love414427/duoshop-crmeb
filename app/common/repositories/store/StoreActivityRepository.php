@@ -16,6 +16,7 @@ use app\common\repositories\store\product\SpuRepository;
 use app\common\repositories\system\merchant\MerchantRepository;
 use app\common\repositories\system\RelevanceRepository;
 use think\exception\ValidateException;
+use think\facade\Cache;
 use think\facade\Db;
 
 class StoreActivityRepository extends BaseRepository
@@ -165,7 +166,6 @@ class StoreActivityRepository extends BaseRepository
             switch ($item['scope_type']) {
                 case self::TYPE_ALL:
                     return $item;
-                    break;
                 case self::TYPE_MUST_PRODUCT:
                     $_type = RelevanceRepository::SCOPE_TYPE_PRODUCT;
                     $right_id = $spuId ?:0;

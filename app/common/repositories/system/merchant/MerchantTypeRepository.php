@@ -36,7 +36,7 @@ class MerchantTypeRepository extends BaseRepository
     {
         $query = $this->dao->search()->with(['auth']);
         $count = $query->count();
-        $list = $query->page($page, $limit)->order('mer_type_id DESC')->select();
+        $list = $query->page($page, $limit)->order('mer_type_id DESC')->select()->append(['merchant_count']);
         foreach ($list as $item){
             $item['auth_ids'] = array_column($item['auth']->toArray(), 'right_id');
             unset($item['auth']);
@@ -122,10 +122,11 @@ class MerchantTypeRepository extends BaseRepository
 
     public function detail($id)
     {
-        $find = $this->dao->search(['mer_type_id' => $id])->with(['auth'])->find();
+        $find = $this->dao->search(['mer_type_id' => $id])->with(['auth'])->find()->append(['merchant_count']);
         if (!$find)    throw new ValidateException('数据不存在');
         $ids = array_column($find['auth']->toArray(), 'right_id');
         unset($find['auth']);
+        $find['auth_ids'] = $ids;
         $options = [];
         if ($ids) {
             $paths = app()->make(MenuRepository::class)->getAllOptions(1, true,compact('ids'),'path');
@@ -136,7 +137,6 @@ class MerchantTypeRepository extends BaseRepository
             $auth = app()->make(MenuRepository::class)->getAllOptions(1, true, compact('ids'));
             $options = formatTree($auth, 'menu_name');
         }
-
         $find['options'] = $options;
         return $find;
     }

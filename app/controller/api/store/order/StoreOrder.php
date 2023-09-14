@@ -79,7 +79,12 @@ class StoreOrder extends BaseController
         $extend = (array)$this->request->param('extend', []);
         $mark = (array)$this->request->param('mark', []);
         $payType = $this->request->param('pay_type');
+        $key = (string)$this->request->param('key');
         $post = (array)$this->request->param('post');
+
+        if(!$key){
+            return app('json')->fail('订单操作超时,请刷新页面');
+        }
 
         $isPc = $payType === 'pc';
         if ($isPc) {
@@ -101,8 +106,8 @@ class StoreOrder extends BaseController
 //        if (!$addressId)
 //            return app('json')->fail('请选择地址');
 
-        $groupOrder = app()->make(LockService::class)->exec('order.create', function () use ($orderCreateRepository, $receipt_data, $mark, $extend, $cartId, $payType, $takes, $couponIds, $useIntegral, $addressId, $post) {
-            return $orderCreateRepository->v2CreateOrder(array_search($payType, StoreOrderRepository::PAY_TYPE), $this->request->userInfo(), $cartId, $extend, $mark, $receipt_data, $takes, $couponIds, $useIntegral, $addressId, $post);
+        $groupOrder = app()->make(LockService::class)->exec('order.create', function () use ($key, $orderCreateRepository, $receipt_data, $mark, $extend, $cartId, $payType, $takes, $couponIds, $useIntegral, $addressId, $post) {
+            return $orderCreateRepository->v2CreateOrder($key, array_search($payType, StoreOrderRepository::PAY_TYPE), $this->request->userInfo(), $cartId, $extend, $mark, $receipt_data, $takes, $couponIds, $useIntegral, $addressId, $post);
         });
 
         if ($groupOrder['pay_price'] == 0) {

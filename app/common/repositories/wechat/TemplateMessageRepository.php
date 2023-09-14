@@ -14,12 +14,14 @@ namespace app\common\repositories\wechat;
 
 use app\common\dao\wechat\TemplateMessageDao;
 use app\common\repositories\BaseRepository;
+use app\common\repositories\system\notice\SystemNoticeConfigRepository;
 use crmeb\exceptions\WechatException;
 use crmeb\services\MiniProgramService;
 use crmeb\services\WechatService;
 use FormBuilder\Factory\Elm;
 use think\exception\ValidateException;
 use think\facade\Config;
+use think\facade\Log;
 use think\facade\Route;
 
 /**
@@ -130,8 +132,8 @@ class TemplateMessageRepository extends BaseRepository
         if (!systemConfig('routine_appId') || !systemConfig('routine_appsecret')) {
             throw new ValidateException('请先配置小程序appid、appSecret等参数');
         }
-
-        $all = $this->getTemplateList(['type' => 0]);
+        $systemNoticeConfigRepository = app()->make(SystemNoticeConfigRepository::class);
+        $all = $systemNoticeConfigRepository->getTemplateList(0);
         $errData = [];
         $errMessage = [
             '-1' => '系统繁忙，此时请稍候再试',
@@ -147,11 +149,12 @@ class TemplateMessageRepository extends BaseRepository
             '200012' => '个人模版数已达上限，上限25个',
         ];
         if ($all['list']) {
+
             $time = time();
-            foreach ($all['list'] as $template) {
+            foreach ($all['list'] as $k => $template) {
                 if ($template['tempkey']) {
                     if (!isset($template['kid'])) {
-                        throw new ValidateException('数据库模版表(template_message)缺少字段：kid');
+                        throw new ValidateException('缺少字段：kid');
                     }
                     if (isset($template['kid']) && $template['kid']) {
                         continue;
@@ -163,17 +166,17 @@ class TemplateMessageRepository extends BaseRepository
                         $wechatErr = $e->getMessage();
                         if (is_string($wechatErr))
                             throw new WechatException('模板ID：'.$template['tempkey'].',错误信息'.$wechatErr);
-                        if (in_array($wechatErr->getCode(), array_keys($errMessage))) {
+                        if (in_array($e->getCode(), array_keys($errMessage))) {
                             throw new WechatException($errMessage[$wechatErr->getCode()]);
                         }
-                        $errData[1] = '获取关键词列表失败：' . $wechatErr->getMessage();
+                        $errData[$k][] = '获取关键词列表失败：' . $wechatErr->getMessage();
                     }
                     $kid = [];
                     if ($works) {
                         $works = array_combine(array_column($works, 'name'), $works);
                         $content = is_array($template['content']) ? $template['content'] : explode("\n", $template['content']);
                         foreach ($content as $c) {
-                            $name = explode('{{', $c)[0] ?? '';
+                            $name = trim(explode('{{', $c)[0] ?? '');
                             if ($name && isset($works[$name])) {
                                 $kid[] = $works[$name]['kid'];
                             }
@@ -182,25 +185,26 @@ class TemplateMessageRepository extends BaseRepository
                     if ($kid && isset($template['kid']) && !$template['kid']) {
                         $tempid = '';
                         try {
-                            $tempid = MiniProgramService::create()->addSubscribeTemplate($template['tempkey'], $kid, $template['name']);
+                            $tempid = MiniProgramService::create()->addSubscribeTemplate($template['tempkey'], $kid, $template['notice_title']);
                         } catch (\Throwable $e) {
                             $wechatErr = $e->getMessage();
-                            if ($wechatErr->getCode() == 200022) continue;
+                            if ($e->getCode() == 200022) continue;
                             if (is_string($wechatErr)) throw new WechatException($wechatErr);
                             if (in_array($wechatErr->getCode(), array_keys($errMessage))) {
                                 throw new WechatException($errMessage[$wechatErr->getCode()]);
                             }
-                            $errData[2] = '添加订阅消息模版失败：' . $wechatErr->getMessage();
+                            $errData[$k][] = '模板ID：'.$template['tempkey'].'，添加订阅消息模版失败：'.$wechatErr->getMessage();
                         }
 
                         if ($tempid != $template['tempid'] && $tempid) {
-                            $this->dao->update($template['template_id'], ['tempid' => $tempid, 'kid' => json_encode($kid), 'create_time' => $time]);
+                            $systemNoticeConfigRepository->update($template['notice_config_id'], ['routine_tempid' => $tempid, 'kid' => json_encode($kid)]);
                         }
                     }
                 }
             }
         }
-        return $errData ? implode('\n', $errData) : '同步成功';
+        if ($errData) Log::error('同步消息失败：'.var_export($errData,1));
+        return $errData ? '同步存在错误，请在日志查看:/runtime/log/' : '同步成功';
     }
 
     /**
@@ -215,7 +219,8 @@ class TemplateMessageRepository extends BaseRepository
         if (!systemConfig('wechat_appid') || !systemConfig('wechat_appsecret')) {
             throw new WechatException('请先配置微信公众号appid、appSecret等参数');
         }
-        $tempall = $this->getTemplateList(['type' => 1]);
+        $systemNoticeConfigRepository = app()->make(SystemNoticeConfigRepository::class);
+        $tempall = $systemNoticeConfigRepository->getTemplateList(1);
         /*
          * 删除所有模版ID
          */
@@ -227,10 +232,20 @@ class TemplateMessageRepository extends BaseRepository
         }
 
         foreach ($tempall['list'] as $temp) {
+            $content = is_array($temp['content']) ? $temp['content'] : explode("\n", $temp['content']);
+            $name = [];
+            foreach ($content as $c) {
+                $name[] = trim(explode('{{', $c)[0] ?? '');
+            }
             //添加模版消息
-            $res = WechatService::create()->addTemplateId($temp['tempkey']);
+            try{
+                $res = WechatService::create()->addTemplateId($temp['tempkey'],$name);
+            }catch (\Exception $exception) {
+                return $temp['notice_title'].$exception->getMessage();
+            }
+
             if (!$res->errcode && $res->template_id) {
-                $this->dao->update($temp['template_id'], ['tempid' => $res->template_id]);
+                $systemNoticeConfigRepository->update($temp['notice_config_id'], ['wechat_tempid' => $res->template_id]);
             }
         }
 

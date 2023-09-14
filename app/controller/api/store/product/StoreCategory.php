@@ -68,7 +68,12 @@ class StoreCategory extends BaseController
 
     public function cateHotRanking()
     {
-        $data = $this->repository->getSearch(['level' => systemConfig('hot_ranking_lv') ?:0, 'mer_id' => 0,'is_show' => 1])->order('sort DESC,create_time DESC')->select();
+        $data = $this->repository->getSearch([
+            'level' => systemConfig('hot_ranking_lv') ?:0,
+            'mer_id' => 0,
+            'is_show' => 1,
+            'type' => 0
+        ])->order('sort DESC,create_time DESC')->select();
         return app('json')->success($data);
     }
 }

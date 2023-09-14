@@ -79,7 +79,7 @@ class SystemConfigValueDao extends BaseDao
      * @author xaboy
      * @day 2020-05-18
      */
-    public function clearBykey(int $merId,string $keys)
+    public function clearBykey(array $keys,int $merId)
     {
         return SystemConfigValue::getDB()->whereIn('config_key', $keys)->where('mer_id', $merId)->delete();
     }

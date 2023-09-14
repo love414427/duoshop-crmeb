@@ -52,32 +52,12 @@ class Spu extends BaseModel
      */
     public function getMinExtensionAttr($value)
     {
-        if(!isset($this->product)) return 0;
-        if($this->product->extension_type){
-            $org_extension = ($this->product->attrValue()->order('extension_two ASC')->value('extension_two'));
-        } else {
-            $org_extension = bcmul(($this->product->attrValue()->order('price ASC')->value('price')) , systemConfig('extension_one_rate'),2);
-        }
-        $spreadUser = (request()->hasMacro('isLogin') && request()->isLogin() &&  request()->userType() == 1  ) ? request()->userInfo() : null;
-        if ($spreadUser && $spreadUser->brokerage_level > 0 && $spreadUser->brokerage && $spreadUser->brokerage->extension_one_rate > 0) {
-            $org_extension = bcmul($org_extension, 1 + $spreadUser->brokerage->extension_one_rate, 2);
-        }
-        return $org_extension;
+        return isset($this->product) ? $this->product->min_extension : 0;
     }
 
-    public function getMaxExtensionAttr($value)
+    public function getMaxExtensionAttr()
     {
-        if(!isset($this->product)) return 0;
-        if($this->product->extension_type){
-            return  ($this->product->attrValue()->order('extension_two DESC')->value('extension_one'));
-        } else {
-            return  bcmul(($this->product->attrValue()->order('price DESC')->value('price')) , systemConfig('extension_one_rate'),2);
-        }
-        $spreadUser = (request()->hasMacro('isLogin') && request()->isLogin() &&  request()->userType() == 1  ) ? request()->userInfo() : null;
-        if ($spreadUser && $spreadUser->brokerage_level > 0 && $spreadUser->brokerage && $spreadUser->brokerage->extension_one_rate > 0) {
-            $org_extension = bcmul($org_extension, 1 + $spreadUser->brokerage->extension_one_rate, 2);
-        }
-        return $org_extension;
+        return isset($this->product) ? $this->product->max_extension : 0;
     }
 
     public function getStopTimeAttr()
@@ -168,6 +148,16 @@ class Spu extends BaseModel
     public function getIsSvipPriceAttr()
     {
         if ($this->product_type == 0) return $this->product->is_svip_price;
+    }
+
+    public function getMerLabelsDataAttr()
+    {
+        return ProductLabel::whereIn('product_label_id',$this->mer_labels)->column('label_name');
+    }
+
+    public function getSysLabelsDataAttr()
+    {
+        return ProductLabel::whereIn('product_label_id',$this->sys_labels)->column('label_name');
     }
 
     /*

@@ -53,6 +53,7 @@ class StorePrinter extends BaseController
     public function create()
     {
         $params = $this->request->params([
+            'type',
             'printer_name',
             'printer_appkey',
             'printer_appid',
@@ -62,9 +63,8 @@ class StorePrinter extends BaseController
         ]);
 
         if (!$params['printer_name'] ||
-            !$params['printer_appkey'] ||
             !$params['printer_appid'] ||
-            !$params['printer_secret'] ||
+            !$params['printer_appkey'] ||
             !$params['printer_terminal']
         ) {
             return app('json')->fail('信息不完整');
@@ -82,6 +82,7 @@ class StorePrinter extends BaseController
     public function update($id)
     {
         $params = $this->request->params([
+            'type',
             'printer_name',
             'printer_appkey',
             'printer_appid',
@@ -91,9 +92,8 @@ class StorePrinter extends BaseController
         ]);
 
         if (!$params['printer_name'] ||
-            !$params['printer_appkey'] ||
             !$params['printer_appid'] ||
-            !$params['printer_secret'] ||
+            !$params['printer_appkey'] ||
             !$params['printer_terminal']
         ) {
             return app('json')->fail('信息不完整');

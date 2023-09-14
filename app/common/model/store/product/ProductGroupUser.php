@@ -12,6 +12,7 @@ namespace app\common\model\store\product;
 
 use app\common\model\BaseModel;
 use app\common\model\store\order\StoreOrder;
+use app\common\model\user\User;
 
 class ProductGroupUser extends BaseModel
 {
@@ -51,6 +52,10 @@ class ProductGroupUser extends BaseModel
     public function productGroup()
     {
         return $this->hasOne(ProductGroup::class,'product_group_id','product_group_id');
+    }
+    public function user()
+    {
+        return $this->hasOne(User::class,'uid','uid');
     }
 
 //    public function getAvatarAttr($value)

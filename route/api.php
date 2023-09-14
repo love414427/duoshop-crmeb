@@ -202,6 +202,7 @@ Route::group('api/', function () {
 
         //购物车
         Route::group('user/cart', function () {
+            Route::post('/check/:id', 'StoreCart/checkCerate');
             Route::get('/lst', 'StoreCart/lst');
             Route::post('/create', 'StoreCart/create');
             Route::post('/again', 'StoreCart/again');
@@ -254,7 +255,6 @@ Route::group('api/', function () {
             Route::get('category/select', 'StoreCategory/getTreeList');
             Route::get('category/brandlist', 'StoreCategory/BrandList');
 
-
             //运费模板
             Route::get('template/lst', 'ShippingTemplate/lst');
             Route::post('template/create', 'ShippingTemplate/create');
@@ -271,9 +271,6 @@ Route::group('api/', function () {
             Route::post('attr/delete', 'StoreProductAttrTemplate/batchDelete');
             Route::get('attr/detail/:id', 'StoreProductAttrTemplate/detail');
             Route::get('attr/list', 'StoreProductAttrTemplate/getlist');
-
-
-
         })->prefix('api.server.')->middleware(\app\common\middleware\MerchantServerMiddleware::class,1);
 
         //管理员订单
@@ -298,6 +295,9 @@ Route::group('api/', function () {
         //管理员退款单
         Route::group('server/:merId/refund', function () {
             //退款单
+            Route::get('check/:id', '/check');
+            Route::post('create', '/create');
+            Route::post('compute', '/compute');
             Route::get('lst', '/lst');
             Route::get('detail/:id', '/detail');
             Route::get('get/:id', '/getRefundPrice');
@@ -395,6 +395,7 @@ Route::group('api/', function () {
         })->prefix('api.community.');
         //上传图片
         Route::post('upload/image/:field', 'api.Common/uploadImage');
+        Route::post('scan_upload/image/:field/:token', 'api.Common/scanUploadImage');
         //获取商户基本信息
         Route::get('service/info/:id', 'api.store.service.Service/merchantInfo');
         //公共配置
@@ -405,18 +406,16 @@ Route::group('api/', function () {
             Route::get('lst/:id', 'api.Common/activityLst');
             Route::get('info/:id', 'api.Common/activityInfo');
         });
-
         //商品
         Route::group('store/product', function () {
             Route::get('seckill/select', 'StoreProductSeckill/select');
             Route::get('seckill/lst', 'StoreProductSeckill/lst');
             Route::get('seckill/detail/:id', 'StoreProductSeckill/detail')->middleware(VisitProductMiddleware::class, 1);
-
-
             Route::get('category/lst', 'StoreCategory/lst');
             Route::get('category', 'StoreCategory/children');
             Route::get('brand/lst', 'StoreBrand/lst');
             Route::get('detail/:id', 'StoreProduct/detail')->middleware(VisitProductMiddleware::class, 0);
+            Route::get('show/:id', 'StoreProduct/show');
             Route::get('/qrcode/:id', 'StoreProduct/qrcode');
             Route::get('category/hotranking', 'StoreCategory/cateHotRanking');
 
@@ -532,6 +531,31 @@ Route::group('api/', function () {
             Route::get('detail/:id', '/detail');
         })->prefix('api.store.product.PointsProduct');
 
+        Route::group('diy', function () {
+            //秒杀
+            Route::get('/seckill', '/seckill');
+            //助力
+            Route::get('/assist', '/assist');
+            //预售
+            Route::get('/presell', '/presell');
+            //拼团
+            Route::get('/group', '/group');
+            //商品列表
+            Route::get('/spu', '/spu');
+            //社区
+            Route::get('/community', '/community');
+            //优惠券
+            Route::get('/coupon', '/coupon');
+            //品牌好店
+            Route::get('/store', '/store');
+            //二级分类
+            Route::get('/category', '/category');
+            //直播
+            Route::get('/broadcast', '/broadcast');
+            //热卖排行
+            Route::get('/hot_top', '/hot_top');
+        })->prefix('api.Diy');
+
     })->middleware(UserTokenMiddleware::class, false);
 
     //微信支付回调
@@ -612,17 +636,16 @@ Route::group('api/', function () {
 
     Route::get('script', 'api.Common/script');
     Route::get('appVersion', 'api.Common/appVersion');
-    Route::get('diy', 'api.Common/diy');
+
     Route::get('navigation', 'api.Common/getNavigation');
     Route::get('micro', 'api.Common/micro');
     Route::get('version', 'admin.Common/version');
-
+    Route::get('diy', 'api.Common/diy');
     //滑块验证码
     Route::get('ajcaptcha', 'api.Auth/ajcaptcha');
     Route::post('ajcheck', 'api.Auth/ajcheck');
 
     Route::get('open_screen', 'api.Common/open_screen');
-
 })->middleware(AllowOriginMiddleware::class)
     ->middleware(InstallMiddleware::class)
     ->middleware(CheckSiteOpenMiddleware::class)

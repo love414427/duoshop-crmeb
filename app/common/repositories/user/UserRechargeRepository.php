@@ -121,7 +121,7 @@ class UserRechargeRepository extends BaseRepository
                 'title' => '余额充值',
                 'number' => $price,
                 'mark' => $mark,
-                'balance' => $recharge->user->now_money
+                'balance' => bcadd($recharge->user->now_money, $price, 2)
             ]);
             $recharge->user->now_money = bcadd($recharge->user->now_money, $price, 2);
             $recharge->user->save();

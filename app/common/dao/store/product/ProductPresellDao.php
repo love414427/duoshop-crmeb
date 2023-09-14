@@ -43,6 +43,9 @@ class ProductPresellDao extends BaseDao
             ->when(isset($where['mer_id']) && $where['mer_id'] !== '',function($query)use($where){
                 $query->where('ProductPresell.mer_id',$where['mer_id']);
             })
+            ->when(isset($where['is_del']) && $where['is_del'] !== '',function($query)use($where){
+                $query->where('ProductPresell.is_del',$where['is_del']);
+            })
             ->when(isset($where['action_status']) && $where['action_status'] !== '',function($query)use($where){
                 $query->where('ProductPresell.action_status',$where['action_status']);
             })
@@ -165,7 +168,8 @@ class ProductPresellDao extends BaseDao
             //'product_status' => 1,
             'status' => 1,
             'is_show' => 1,
-            'api_type' => 1
+            'api_type' => 1,
+            'is_del' => 0,
         ];
     }
 

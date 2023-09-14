@@ -87,8 +87,8 @@ class MemberinterestsRepository extends BaseRepository
             Elm::frameImage('pic', '图标', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=pic&type=1')
                 ->value($formData['pic'] ?? '')
                 ->modal(['modal' => false])
-                ->width('896px')
-                ->height('480px'),
+                ->width('1000px')
+                ->height('600px'),
             Elm::select('brokerage_level', '会员级别')->options(function () use($type){
                 $options = app()->make(UserBrokerageRepository::class)->options(['type' => $type])->toArray();
                 return $options;
@@ -132,13 +132,13 @@ class MemberinterestsRepository extends BaseRepository
             Elm::frameImage('pic', '未开通图标', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=pic&type=1')
                 ->value($formData['pic'] ?? '')->required()
                 ->modal(['modal' => false])
-                ->width('896px')
-                ->height('480px'),
+                ->width('1000px')
+                ->height('600px'),
             Elm::frameImage('on_pic', '已开通图标', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=on_pic&type=1')
                 ->value($formData['on_pic'] ?? '')->required()
                 ->modal(['modal' => false])
-                ->width('896px')
-                ->height('480px'),
+                ->width('1000px')
+                ->height('600px'),
             Elm::input('link', '跳转内部链接'),
         ];
         $msg = self::INTERESTS_TYPE[$formData['has_type']]['msg'];

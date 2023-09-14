@@ -16,6 +16,7 @@ namespace app\common\dao\store;
 use app\common\dao\BaseDao;
 use app\common\model\BaseModel;
 use app\common\model\store\CityArea;
+use think\exception\ValidateException;
 
 class CityAreaDao extends BaseDao
 {
@@ -32,6 +33,7 @@ class CityAreaDao extends BaseDao
         })->when(isset($where['address']) && $where['address'] !== '', function ($query) use ($where) {
             $address = explode('/', trim($where['address'], '/'));
             $p = array_shift($address);
+            $_p = $p;
             if (mb_strlen($p) - 1 === mb_strpos($p, '市')) {
                 $p = mb_substr($p, 0, -1);
             } elseif (mb_strlen($p) - 1 === mb_strpos($p, '省')) {
@@ -40,6 +42,8 @@ class CityAreaDao extends BaseDao
                 $p = mb_substr($p, 0, -3);
             }
             $pcity = $this->search([])->where('name', $p)->find();
+            if (!$pcity) $pcity = $this->search([])->where('name', $_p)->find();
+            if (!$pcity) throw new ValidateException('获取地址失败'.$_p);
             $street = array_pop($address);
             if ($pcity) {
                 $path = '/' . $pcity->id . '/';

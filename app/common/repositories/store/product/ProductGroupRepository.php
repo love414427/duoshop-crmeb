@@ -382,7 +382,10 @@ class ProductGroupRepository extends BaseRepository
 
         $make = app()->make(ProductRepository::class);
         $data['successUser'] = app()->make(ProductGroupUserRepository::class)->successUser($id);
-        $data['product'] = $make->apiProductDetail(['product_id' => $data['product_id']],4,$id,$userInfo);
+        $product = $make->apiProductDetail(['product_id' => $data['product_id']], 4, $id,$userInfo)->toArray();
+        $show = $make->getProductShow($data['product_id'],$product,$id,$userInfo->uid ?? 0);
+        $data['product'] = array_merge($product,$show);
+
         return $data->append(['sales','stock']);
     }
 

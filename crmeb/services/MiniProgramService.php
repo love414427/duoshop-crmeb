@@ -409,12 +409,12 @@ class MiniProgramService
     public function handleNotifyV3()
     {
         return $this->service->v3Pay->handleNotify(function ($notify, $successful) {
-            Log::info('小程序支付回调' . var_export($notify, 1));
+            Log::info('小程序支付回调v3' . var_export([$notify, $successful],1));
             if (!$successful) return;
             try {
                 event('pay_success_' . $notify['attach'], ['order_sn' => $notify['out_trade_no'], 'data' => $notify]);
             } catch (\Exception $e) {
-                Log::info('小程序支付回调失败:' . $e->getMessage());
+                Log::info('小程序支付回调失败v3:' . $e->getMessage());
                 return false;
             }
             return true;

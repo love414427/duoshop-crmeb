@@ -71,7 +71,7 @@ class GuaranteeRepository extends BaseRepository
             Elm::textarea('guarantee_info', '服务内容描述')->autosize([
                 'minRows'=>1000,
             ])->required(),
-            Elm::frameImage('image', '服务条款图标(100*100px)', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=image&type=1')->value($formData['image']??'')->modal(['modal' => false])->width('896px')->height('480px')->required(),
+            Elm::frameImage('image', '服务条款图标(100*100px)', '/' . config('admin.admin_prefix') . '/setting/uploadPicture?field=image&type=1')->value($formData['image']??'')->modal(['modal' => false])->width('1000px')->height('600px')->required(),
             Elm::switches('status', '是否显示', 1)->activeValue(1)->inactiveValue(0)->inactiveText('关')->activeText('开'),
             Elm::number('sort', '排序', 0)->precision(0)->max(99999),
         ]);

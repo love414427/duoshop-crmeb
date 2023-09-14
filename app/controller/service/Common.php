@@ -21,7 +21,7 @@ class Common extends BaseController
             $config = systemConfig(['site_logo', 'site_name','login_logo']);
             $data = [
                 'mer_id' => 0,
-                'avatar' => $config['login_logo'],
+                'avatar' => $config['site_logo'],
                 'name' => $config['site_name'],
             ];
         }

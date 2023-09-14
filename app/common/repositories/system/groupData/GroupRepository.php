@@ -211,4 +211,25 @@ class GroupRepository extends BaseRepository
         });
     }
 
+    /***
+     * 处理关联字段显示
+     * @param $fields
+     * @return array
+     *
+     * @date 2023/09/09
+     * @author yyw
+     */
+    public function handleFields($fields = [])
+    {
+        foreach ($fields as &$field) {
+            switch ($field['type']) {
+                case 'label':
+                case 'cate':
+                    $field['field'] = $field['type'] . '_name';
+                    break;
+            }
+        }
+        return $fields;
+    }
+
 }

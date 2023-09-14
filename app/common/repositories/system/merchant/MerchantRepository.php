@@ -24,6 +24,7 @@ use app\common\repositories\store\order\StoreOrderRepository;
 use app\common\repositories\store\product\ProductCopyRepository;
 use app\common\repositories\store\product\ProductRepository;
 use app\common\repositories\store\product\SpuRepository;
+use app\common\repositories\store\service\StoreServiceRepository;
 use app\common\repositories\store\shipping\ShippingTemplateRepository;
 use app\common\repositories\store\StoreCategoryRepository;
 use app\common\repositories\system\attachment\AttachmentCategoryRepository;
@@ -171,8 +172,8 @@ class MerchantRepository extends BaseRepository
         $rule = [
             Elm::textarea('mer_info', '店铺简介')->required(),
             Elm::input('service_phone', '服务电话')->required(),
-            Elm::frameImage('mer_banner', '店铺Banner(710*200px)', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=mer_banner&type=1')->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false]),
-            Elm::frameImage('mer_avatar', '店铺头像(120*120px)', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=mer_avatar&type=1')->modal(['modal' => false])->width('896px')->height('480px')->props(['footer' => false]),
+            Elm::frameImage('mer_banner', '店铺Banner(710*200px)', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=mer_banner&type=1')->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false]),
+            Elm::frameImage('mer_avatar', '店铺头像(120*120px)', '/' . config('admin.merchant_prefix') . '/setting/uploadPicture?field=mer_avatar&type=1')->modal(['modal' => false])->width('1000px')->height('600px')->props(['footer' => false]),
             Elm::switches('mer_state', '是否开启', 1)->activeValue(1)->inactiveValue(0)->inactiveText('关')->activeText('开')->col(12),
         ];
         $form->setRule($rule);
@@ -475,14 +476,19 @@ class MerchantRepository extends BaseRepository
      */
     public function clearRedundancy()
     {
-        $ret = (int)$this->dao->search(['is_del' => 1])->value('mer_id');
-        if (!$ret) return;
-        try {
-            app()->make(ProductRepository::class)->clearMerchantProduct($ret);
-            app()->make(StoreCouponRepository::class)->getSearch([])->where('mer_id', $ret)->update(['is_del' => 1, 'status' => 0]);
-            app()->make(StoreCouponUserRepository::class)->getSearch([])->where('mer_id', $ret)->update(['is_fail' => 1, 'status'=>2]);
-        } catch (\Exception $exception) {
-            throw new ValidateException($exception->getMessage());
+        $rets = (int)$this->dao->search(['is_del' => 1])->column('mer_id');
+        if (empty($rets)) return;
+        $productRepository = app()->make(ProductRepository::class);
+        $storeCouponRepository = app()->make(StoreCouponRepository::class);
+        $storeCouponUserRepository = app()->make(StoreCouponUserRepository::class);
+        foreach ($rets as $ret) {
+            try {
+                $productRepository->clearMerchantProduct($ret);
+                $storeCouponRepository->getSearch([])->where('mer_id', $ret)->update(['is_del' => 1, 'status' => 0]);
+                $storeCouponUserRepository->getSearch([])->where('mer_id', $ret)->update(['is_fail' => 1, 'status' => 2]);
+            } catch (\Exception $exception) {
+                throw new ValidateException($exception->getMessage());
+            }
         }
     }
 
@@ -821,5 +827,28 @@ class MerchantRepository extends BaseRepository
             ->with(['merchantType','marginOrder'])
             ->field('sort,mer_id,mer_name,real_name,mer_phone,mer_address,mark,status,create_time,is_best,is_trader,type_id,category_id,copy_product_num,export_dump_num,is_margin,margin,ot_margin,mer_avatar,margin_remind_time')->select();
         return compact('count', 'list');
+    }
+
+    /**
+     * TODO 平台后台获取商户信息
+     * @param $id
+     * @author Qinii
+     * @day 2023/7/1
+     */
+    public function adminDetail($id)
+    {
+        $data = $this->dao->getWhere(['mer_id' => $id],'*',['merchantType','merchantCategory'])->toArray();
+        $make = app()->make(MerchantAdminRepository::class);
+        $data['mer_account'] = $make->merIdByAccount($id);
+        $data['mer_password'] = '***********';
+
+        if($data['category_id'] == 0){
+            $data['category_id'] = '';
+        }
+        if($data['type_id'] == 0){
+            $data['type_id'] = '';
+        }
+        $data['mer_certificate'] = merchantConfig($id, 'mer_certificate');
+        return $data;
     }
 }

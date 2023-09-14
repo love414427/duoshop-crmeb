@@ -123,9 +123,13 @@ class UserDao extends BaseDao
         }, function ($query) {
             $query->order('User.uid DESC');
         })->when(isset($where['is_svip']) && $where['is_svip'] !== '', function (BaseQuery $query) use ($where) {
-            return $query->where('User.is_svip','>',0);
+            if ($where['is_svip']) {
+                $query->where('User.is_svip','>',0);
+            } else {
+                $query->where('User.is_svip','<=',0);
+            }
         })->when(isset($where['svip_type']) && $where['svip_type'] !== '', function (BaseQuery $query) use ($where) {
-            return $query->where('User.is_svip',$where['svip_type']);
+            $query->where('User.is_svip',$where['svip_type']);
         });
 
         return $query;

@@ -42,11 +42,16 @@ class ParameterTemplate extends BaseController
     public function lst()
     {
         [$page, $limit] = $this->getPage();
-        $where = $this->request->params(['template_name','cate_id','mer_name','mer_id']);
+        $where = $this->request->params(['template_name','cate_ids','mer_name','mer_id']);
         $where['is_mer'] = $this->request->param('is_mer',1);
         if ($merId = $this->request->merId()) {
             $where['mer_id'] = $merId;
             unset($where['is_mer']);
+        }
+        // 处理分类id
+        if(!empty($where['cate_ids'])){
+            $where['cate_id'] = end($where['cate_ids']);
+            unset($where['cate_ids']);
         }
         $data = $this->repository->getList($where,$page, $limit);
         return app('json')->success($data);

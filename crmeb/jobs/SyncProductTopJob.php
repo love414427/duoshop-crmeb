@@ -17,25 +17,23 @@ class SyncProductTopJob implements JobInterface
     public function fire($job, $data)
     {
         try{
+            $hot = systemConfig(['hot_ranking_switch','hot_ranking_lv']);
+            if ($hot['hot_ranking_switch'] != 1) return $job->delete();
+
             $SpuRepository = app()->make(SpuRepository::class);
             $RedisCacheService = app()->make(RedisCacheService::class);
             $prefix = env('queue_name','merchant').'_hot_ranking_';
             $oldKeys1 = $RedisCacheService->keys($prefix.'top_*') ?: [];
             $oldKeys1 = array_combine($oldKeys1, $oldKeys1);
             $mset = [];
-            $hot = systemConfig(['hot_ranking_switch','hot_ranking_lv']);
-            if (!$hot['hot_ranking_switch']) return $job->delete();
-            $where['product_type'] = 0;
-            $where['spu_status'] = 1;
-            $where['mer_status'] = 1;
-            $where['order'] = 'sales';
+            $where = ['product_type' => 0, 'spu_status' => 1, 'mer_status' => 1, 'order' => 'sales'];
             $ids = $SpuRepository->search($where)->limit(15)->column('spu_id');
             $mset[$prefix.'top_0'] = implode(',', $ids);
             unset($oldKeys1[$prefix.'top_0']);
-
             $make = app()->make(StoreCategoryRepository::class);
             foreach ([1,2,3] as $level) {
-                $cateList = $make->getSearch(['status' => 1])->where('level','<',$level)->column('store_category_id,cate_name,pic');
+                $cateList = $make->getSearch(['status' => 1, 'mer_id' => 0, 'type' => 0])
+                    ->where('level','<',$level)->column('store_category_id,cate_name,pic');
                 foreach ($cateList as $item) {
                     $id = $item['store_category_id'];
                     $ids = $make->findChildrenId($id);

@@ -25,12 +25,11 @@ class RelevanceDao extends BaseDao
         return Relevance::class;
     }
 
-    public function clear(int $id, $type, string $field)
+    public function clear(int $id, $type, string $field = 'left_id')
     {
         if (is_string($type)) $type = [$type];
         return $this->getModel()::getDb()->where($field, $id)->whereIn('type', $type)->delete();
     }
-
 
     public function joinUser($where)
     {
@@ -40,10 +39,7 @@ class RelevanceDao extends BaseDao
                 $query->where('is_type',$where['is_type']);
             });
         });
-
         $query->where('left_id',$where['uid'])->where('type',RelevanceRepository::TYPE_COMMUNITY_START);
         return $query;
     }
-
-
 }

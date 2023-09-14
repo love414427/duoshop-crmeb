@@ -44,4 +44,9 @@ class PageCategory extends BaseModel
     {
         $query->where('status',$value);
     }
+
+    public function searchNotTypeAttr($query, $value)
+    {
+        $query->where('type', '<>', $value);
+    }
 }

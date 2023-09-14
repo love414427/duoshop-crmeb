@@ -41,7 +41,8 @@ class UserAddress extends BaseController
 
     public function lst()
     {
-        return app('json')->success($this->repository->getList($this->request->uid()));
+        [$page,$limit] = $this->getPage();
+        return app('json')->success($this->repository->getList($this->request->uid(),$page,$limit));
     }
 
     public function detail($id)

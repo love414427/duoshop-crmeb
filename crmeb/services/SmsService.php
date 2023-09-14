@@ -15,9 +15,13 @@ use app\common\repositories\store\broadcast\BroadcastRoomRepository;
 use app\common\repositories\store\order\StoreGroupOrderRepository;
 use app\common\repositories\store\order\StoreOrderRepository;
 use app\common\repositories\store\order\StoreRefundOrderRepository;
+use app\common\repositories\store\product\ProductGroupBuyingRepository;
+use app\common\repositories\store\product\ProductGroupUserRepository;
 use app\common\repositories\store\product\ProductRepository;
 use app\common\repositories\store\product\ProductTakeRepository;
 use app\common\repositories\store\service\StoreServiceRepository;
+use app\common\repositories\user\UserBillRepository;
+use app\common\repositories\user\UserExtractRepository;
 use crmeb\services\sms\Sms;
 use think\facade\Cache;
 
@@ -281,6 +285,33 @@ class SmsService
                 //付费会员支付成功
             case 'SVIP_PAY_SUCCESS':
                 self::create()->send($id['phone'], $tempId, ['store_name' => systemConfig('site_name'),'date' => $id['date']]);
+                break;
+            case 'GROUP_BUYING_SUCCESS':
+                //${nickname}您好，您于${date}在${store_name}商城参加拼团活动已成功，详情请前往商城查询-我的订单。
+                $res = app()->make(ProductGroupUserRepository::class)->getSearch(['group_buying_id' => $id])->select();
+                foreach ($res as $item) {
+                    if ($item && $item->user->phone) {
+                        self::create()->send($item->user->phone, $tempId,
+                            ['nickname' => $item['nickname'],'store_name' => systemConfig('site_name'),'date' => date('Y-m-d H:i:s')]);
+                    }
+                }
+
+                break;
+            case 'USER_BALANCE_CHANGE':
+                //您好，您于${date}在${store_name}商城${is_status}元，现账户余额为${number}元，祝您购物愉快！
+                $res = app()->make(UserBillRepository::class)->get($id);
+
+                if (!$res || !$res->user->phone) return ;
+                $is_status = ($res['mp'] == 1 ? '余额充值' : '余额消费').$res['number'];
+
+                self::create()->send($res->user->phone, $tempId, ['store_name' => systemConfig('site_name'),'date' => $res['create_time'],'number' => $res['balance'],'is_status' => $is_status]);
+                break;
+            case 'EXTRACT_NOTICE':
+                //您好，您于${date}在${store_name}商城申请提现${number}元，系统审核${is_status}，详情请联系商城管理员。
+                $res = app()->make(UserExtractRepository::class)->get($id);
+                if (!$res || !$res->user->phone) return ;
+                $is_status = $res['status'] ? '已通过' : '已驳回';
+                self::create()->send($res->user->phone, $tempId, ['store_name' => systemConfig('site_name'),'date' => date('Y-m-d H:i:s'),'number' => $res['extract_price'],'is_status' => $is_status]);
                 break;
         }
     }

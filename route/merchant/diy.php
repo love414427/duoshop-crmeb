@@ -41,8 +41,14 @@ Route::group(function () {
             '_alias' => '列表 ',
         ]);
 
-        Route::get('detail/:id', '/getInfo')->name('merchantDiyLst')->option([
-            '_alias' => '列表 ',
+        Route::get('review/:id', '/review');
+
+        Route::get('default_lst', '/defaultLst')->name('merchantDefaultDiyLst')->option([
+            '_alias' => '默认模板列表 ',
+        ]);
+
+        Route::get('detail/:id', '/getInfo')->name('merchantDiyDetail')->option([
+            '_alias' => '详情 ',
         ]);
 
         Route::post('create/:id', '/saveData')->name('merchantDiyCreate')->option([
@@ -58,7 +64,7 @@ Route::group(function () {
         ]);
 
         Route::get('recovery/:id', '/recovery/')->name('merchantDiyRecovery')->option([
-            '_alias' => '使用模板',
+            '_alias' => '重置模板',
         ]);
 
         Route::get('show', '/getDiyInfo')->name('merchantDiyInfo')->option([
@@ -77,7 +83,7 @@ Route::group(function () {
             '_alias' => '复制',
         ]);
 
-    })->prefix('admin.system.diy.Diy')->option([
+    })->prefix('merchant.system.diy.Diy')->option([
         '_path' => '/devise/diy/list',
         '_auth' => true,
         '_append'=> [

@@ -2,46 +2,55 @@
 
 namespace app\common\repositories\store\order;
 
-use app\common\repositories\store\coupon\StoreCouponRepository;
-use app\common\repositories\store\coupon\StoreCouponUserRepository;
-use app\common\repositories\store\product\ProductAssistSkuRepository;
-use app\common\repositories\store\product\ProductAttrValueRepository;
-use app\common\repositories\store\product\ProductGroupSkuRepository;
-use app\common\repositories\store\product\ProductPresellSkuRepository;
-use app\common\repositories\store\product\ProductRepository;
-use app\common\repositories\store\product\StoreDiscountRepository;
-use app\common\repositories\store\StoreCategoryRepository;
-use app\common\repositories\system\merchant\MerchantRepository;
-use app\common\repositories\user\MemberinterestsRepository;
-use app\common\repositories\user\UserAddressRepository;
-use app\common\repositories\user\UserBillRepository;
-use app\common\repositories\user\UserMerchantRepository;
-use app\common\repositories\user\UserRepository;
-use app\validate\api\OrderVirtualFieldValidate;
-use app\validate\api\UserAddressValidate;
 use crmeb\jobs\SendSmsJob;
 use crmeb\services\SwooleTaskService;
 use think\exception\ValidateException;
-use think\facade\Db;
-use think\facade\Queue;
+use app\common\repositories\store\StoreCategoryRepository;
+use app\common\repositories\system\merchant\MerchantRepository;
+use app\common\repositories\store\coupon\{
+    StoreCouponRepository,
+    StoreCouponUserRepository
+};
+use app\common\repositories\store\product\{
+    ProductAssistSkuRepository,
+    ProductAttrValueRepository,
+    ProductGroupSkuRepository,
+    ProductPresellSkuRepository,
+    ProductRepository,
+    StoreDiscountRepository
+};
+use app\common\repositories\user\{
+    MemberinterestsRepository,
+    UserAddressRepository,
+    UserBillRepository,
+    UserMerchantRepository,
+    UserRepository
+};
+use app\validate\api\{
+    OrderVirtualFieldValidate,
+    UserAddressValidate
+};
+use think\facade\{Cache, Db, Queue};
 
 class StoreOrderCreateRepository extends StoreOrderRepository
 {
-
     public function v2CartIdByOrderInfo($user, array $cartId, array $takes = null, array $useCoupon = null, bool $useIntegral = false, int $addressId = null, $createOrder = false)
     {
         $uid = $user->uid;
         $userIntegral = $user->integral;
         $key = md5(json_encode(compact('cartId', 'takes', 'useCoupon', 'useIntegral', 'addressId'))) . $uid;
+
+        //去掉过期的优惠券信息
         app()->make(StoreCouponUserRepository::class)->failCoupon();
+
         $address = null;
         //验证地址
         if ($addressId) {
             $addressRepository = app()->make(UserAddressRepository::class);
             $address = $addressRepository->getWhere(['uid' => $uid, 'address_id' => $addressId]);
         }
-
         $storeCartRepository = app()->make(StoreCartRepository::class);
+        //获取购物车信息
         $res = $storeCartRepository->checkCartList($storeCartRepository->cartIbByData($cartId, $uid, $address), 0, $user);
         $merchantCartList = $res['list'];
         $fail = $res['fail'];
@@ -57,6 +66,7 @@ class StoreOrderCreateRepository extends StoreOrderRepository
 
         $svip_status = $user->is_svip > 0 && systemConfig('svip_switch_status') == '1';
         $svip_integral_rate = $svip_status ? app()->make(MemberinterestsRepository::class)->getSvipInterestVal(MemberinterestsRepository::HAS_TYPE_PAY) : 0;
+
         //订单活动类型
         $order_type = 0;
         //虚拟订单
@@ -95,6 +105,7 @@ class StoreOrderCreateRepository extends StoreOrderRepository
         }
         unset($merchantCart, $cart);
 
+
         $order_price = 0;
         $total_true_price = 0;
         $order_total_price = 0;
@@ -126,11 +137,6 @@ class StoreOrderCreateRepository extends StoreOrderRepository
             $order_refund_switch = 0;
             //是否自提
             $isTake = in_array($merchantCart['mer_id'], $takes ?? []);
-
-//            if (!$createOrder && !$isTake) {
-//                $isTake = count($merchantCart['delivery_way']) == 1 && $merchantCart['delivery_way'][0] == '1';
-//            }
-
             $merTake = in_array('1', $merchantCart['delivery_way'], true);
             $merDelivery = (!$merchantCart['delivery_way'] || !count($merchantCart['delivery_way']) || in_array('2', $merchantCart['delivery_way'], true));
             $_merTake = $merTake;
@@ -138,7 +144,6 @@ class StoreOrderCreateRepository extends StoreOrderRepository
             $deliveryStatus = true;
             if ($createOrder && $isTake && !$merTake) {
                 $deliveryStatus = false;
-//                throw new ValidateException('[仅支持快递配送]' . $merchantCart['mer_name']);
             }
             $product_cart = [];
 
@@ -158,12 +163,10 @@ class StoreOrderCreateRepository extends StoreOrderRepository
                 }
                 if ($createOrder && $isTake && !$merTake) {
                     $deliveryStatus = false;
-//                    throw new ValidateException('[仅支持快递配送]' . $cart['product']['store_name']);
                 }
             }
             if (!$merDelivery && !$merTake) {
                 $deliveryStatus = false;
-//                throw new ValidateException('部分商品配送方式不一致,请单独下单');
             }
             if ($deliveryStatus && !$isTake && ($merDelivery || $merTake)) {
                 $isTake = $merDelivery ? 0 : 1;
@@ -197,14 +200,13 @@ class StoreOrderCreateRepository extends StoreOrderRepository
             $enabledCoupon = !($order_type && $order_type != 2);
 
             //只有预售和普通商品可以用优惠券
-            if (!$enabledCoupon) {
+            if (!$enabledCoupon)
                 $merchantCart['coupon'] = [];
-            }
-            $svip_coupon_merge = merchantConfig($merchantCart['mer_id'], 'svip_coupon_merge');
+
+            $svip_coupon_merge = merchantConfig($merchantCart['mer_id'],'svip_coupon_merge');
             $use_svip = 0;
             //获取运费规则和统计商品数据
             foreach ($merchantCart['list'] as &$cart) {
-
                 if ($cart['product_type'] == 10 && $cart['productDiscountAttr']) {
                     $cart['productAttr']['price'] = $cart['productDiscountAttr']['active_price'];
                     $cart['productAttr']['show_svip_price'] = false;
@@ -214,7 +216,6 @@ class StoreOrderCreateRepository extends StoreOrderRepository
                     throw new ValidateException('购买商品数必须大于0');
                 }
                 $svip_discount = 0;
-
                 $price = bcmul($cart['cart_num'], $this->cartByPrice($cart), 2);
                 $cart['total_price'] = $price;
                 $cart['postage_price'] = 0;
@@ -880,7 +881,8 @@ class StoreOrderCreateRepository extends StoreOrderRepository
         $total_price = $order_total_price;
         $openIntegral = $merIntegralFlag && !$order_type && $sysIntegralConfig['integral_status'] && $sysIntegralConfig['integral_money'] > 0;
         $total_coupon = bcadd($order_svip_discount, bcadd(bcadd($total_platform_coupon_price, $order_coupon_price, 2), $order_total_integral_price, 2), 2);
-        return compact(
+
+        $data = compact(
                 'order_type',
                 'order_model',
                 'order_extend',
@@ -905,12 +907,18 @@ class StoreOrderCreateRepository extends StoreOrderRepository
                 'order_refund_switch',
                 'order'
             ) + ['allow_address' => !$allow_no_address, 'order_delivery_status' => $orderDeliveryStatus];
+        Cache::set('order_create_cache' . $uid . '_' . $key, $data, 600);
+        return $data;
     }
 
-    public function v2CreateOrder(int $pay_type, $user, array $cartId, array $extend, array $mark, array $receipt_data, array $takes = null, array $useCoupon = null, bool $useIntegral = false, int $addressId = null, array $post)
+    public function v2CreateOrder($key, int $pay_type, $user, array $cartId, array $extend, array $mark, array $receipt_data, array $takes = null, array $useCoupon = null, bool $useIntegral = false, int $addressId = null, array $post)
     {
         $uid = $user->uid;
-        $orderInfo = $this->v2CartIdByOrderInfo($user, $cartId, $takes, $useCoupon, $useIntegral, $addressId, true);
+//        $orderInfo = $this->v2CartIdByOrderInfo($user, $cartId, $takes, $useCoupon, $useIntegral, $addressId, true);
+        $orderInfo = Cache::get('order_create_cache' . $uid . '_' . $key);
+        if(!$orderInfo){
+            throw new ValidateException('订单操作超时,请刷新页面');
+        }
         $order_model = $orderInfo['order_model'];
         $order_extend = $orderInfo['order_extend'];
         if (!$orderInfo['order_delivery_status']) {
@@ -1154,6 +1162,8 @@ class StoreOrderCreateRepository extends StoreOrderRepository
                         if ($cart['product_type'] == '1') {
                             $attrValueRepository->descSkuStock($cart['product']['old_product_id'], $cart['productAttr']['sku'], $cart['cart_num']);
                             $productRepository->descStock($cart['product']['old_product_id'], $cart['cart_num']);
+//                            $productRepository->incSales($cart['product']['old_product_id'], $cart['cart_num']);
+                            $productRepository->incSales($cart['product']['product_id'], $cart['cart_num']);
                         } else if ($cart['product_type'] == '2') {
                             $productPresellSkuRepository = app()->make(ProductPresellSkuRepository::class);
                             $productPresellSkuRepository->descStock($cart['productPresellAttr']['product_presell_id'], $cart['productPresellAttr']['unique'], $cart['cart_num']);

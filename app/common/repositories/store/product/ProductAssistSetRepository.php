@@ -165,8 +165,16 @@ class ProductAssistSetRepository extends BaseRepository
      * @author Qinii
      * @day 2020-10-27
      */
-    public function detail(int $id,$userInfo)
+    public function detail(int $id,$userInfo,$type = 1)
     {
+//        if($type == 2){
+//            $product_assist_set_info = $this->create($id,$userInfo['uid']);
+//            if(empty($product_assist_set_info)){
+//                throw new ValidateException('活动助力创建失败');
+//            }
+//            $id = $product_assist_set_info['product_assist_set_id'];
+//        }
+
         $where = [
             "product_assist_set_id" => $id,
         ];

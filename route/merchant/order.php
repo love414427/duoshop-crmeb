@@ -17,6 +17,7 @@ use think\facade\Route;
 use app\common\middleware\MerchantCheckBaseInfoMiddleware;
 
 Route::group(function () {
+
     //电子面单
     Route::group('expr',function(){
 
@@ -141,9 +142,14 @@ Route::group(function () {
         '_auth' => true,
     ]);
 
-
+    Route::get('store/refundorder/refund_message', 'api.Common/refundMessage');
     //退款订单
     Route::group('store/refundorder', function () {
+        Route::get('check/:id', '/check');
+        Route::post('compute', '/compute');
+        Route::post('create', '/create')->name('merchantStoreRefundOrderCreate')->option([
+            '_alias' => '创建',
+        ]);
         Route::get('lst', '/lst')->name('merchantStoreRefundOrderLst')->option([
             '_alias' => '列表',
         ]);

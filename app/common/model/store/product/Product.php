@@ -73,7 +73,7 @@ class Product extends BaseModel
     public function getMaxExtensionAttr($value)
     {
         if($this->extension_type){
-            $org_extension =  ($this->attrValue()->order('extension_two DESC')->value('extension_one'));
+            $org_extension =  ($this->attrValue()->order('extension_one DESC')->value('extension_one'));
         } else {
             $org_extension = bcmul(($this->attrValue()->order('price DESC')->value('price')) , systemConfig('extension_one_rate'),2);
         }
@@ -88,7 +88,7 @@ class Product extends BaseModel
         if($this->extension_type){
             $org_extension = ($this->attrValue()->order('extension_two ASC')->value('extension_two'));
         } else {
-            $org_extension = bcmul(($this->attrValue()->order('price ASC')->value('price')) , systemConfig('extension_one_rate'),2);
+            $org_extension = bcmul(($this->attrValue()->order('price ASC')->value('price')) , systemConfig('extension_two_rate'),2);
         }
         $spreadUser = (request()->hasMacro('isLogin') && request()->isLogin() &&  request()->userType() == 1 ) ? request()->userInfo() : null;
         if ($spreadUser && $spreadUser->brokerage_level > 0 && $spreadUser->brokerage && $spreadUser->brokerage->extension_one_rate > 0) {
@@ -132,9 +132,9 @@ class Product extends BaseModel
         if($this->product_type !== 1) return true;
         $day = strtotime(date('Y-m-d',time()));
         $_h = date('H',time());
+        if(!$this->seckillActive) return -1;
         $start_day = strtotime($this->seckillActive['start_day']);
         $end_day = strtotime($this->seckillActive['end_day']);
-        if(!$this->seckillActive) return '';
         if($this->seckillActive['status'] !== -1){
             //还未开始
             if($start_day > time() || $this->is_show !== 1)return 0;
@@ -152,7 +152,6 @@ class Product extends BaseModel
         }
         //已结束
         return -1;
-
     }
 
     public function getImageAttr($value)
@@ -166,20 +165,22 @@ class Product extends BaseModel
 
     public function getTopReplyAttr()
     {
-        $res = ProductReply::where('product_id',$this->product_id)->where('is_del',0)->with(['orderProduct'])->field('reply_id,uid,nickname,merchant_reply_content,avatar,order_product_id,product_id,product_score,service_score,postage_score,comment,pics,rate,create_time')
-            ->order('sort DESC,create_time DESC')->limit(1)->find();
-        if(!$res) return null;
-        if ($res['orderProduct'])
-            $res['sku'] = $res['orderProduct']['cart_info']['productAttr']['sku'];
-        unset($res['orderProduct']);
-        if (strlen($res['nickname']) > 1) {
-            $str = mb_substr($res['nickname'],0,1) . '*';
-            if (strlen($res['nickname']) > 2) {
-                $str .= mb_substr($res['nickname'], -1,1);
+        $res = [];
+        if (systemConfig('sys_reply_status')) {
+            $res = ProductReply::where('product_id', $this->product_id)->where('is_del', 0)->with(['orderProduct'])->field('reply_id,uid,nickname,merchant_reply_content,avatar,order_product_id,product_id,product_score,service_score,postage_score,comment,pics,rate,create_time')
+                ->order('sort DESC,create_time DESC')->limit(1)->find();
+            if (!$res) return null;
+            if ($res['orderProduct'])
+                $res['sku'] = $res['orderProduct']['cart_info']['productAttr']['sku'];
+            unset($res['orderProduct']);
+            if (strlen($res['nickname']) > 1) {
+                $str = mb_substr($res['nickname'], 0, 1) . '*';
+                if (strlen($res['nickname']) > 2) {
+                    $str .= mb_substr($res['nickname'], -1, 1);
+                }
+                $res['nickname'] = $str;
             }
-            $res['nickname'] = $str;
         }
-
         return $res;
     }
 
@@ -225,9 +226,10 @@ class Product extends BaseModel
 
     public function getOtPriceAttr($value)
     {
-        if ($this->prodcut_type == 20) {
+        if ($this->product_type == 20) {
             return (int)$value;
         }
+        return $value;
     }
 
     /**

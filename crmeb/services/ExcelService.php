@@ -171,7 +171,7 @@ class ExcelService
             ];
             $export[] = $one;
         }
-        $header = ['商户名称','订单编号','订单状态','订单类型','推广人','用户信息', '商品名称','商品规格','商品数量','商品价格','优惠','实付邮费(元)','实付金额(元)','已退款金额(元)', '收货人','收货人电话','收货地址','物流/电话','下单时间','支付方式','支付状态','商家备注'];
+        $header = ['商户名称','订单编号','订单状态','订单类型','推广人','用户信息', '商品名称','商品规格','商品数量','商品价格','优惠','实付邮费(元)','实付金额(元)','已退款金额(元)', '收货人','收货人电话','收货地址','物流/电话','下单时间','支付方式','支付状态','商家备注','是否删除'];
         $filename = '订单列表_'.date('YmdHis');
         $title = ['订单列表','导出时间：'.date('Y-m-d H:i:s',time())];
         $foot = '';
@@ -325,7 +325,7 @@ class ExcelService
         foreach ($data as $k => $item){
             $product = '';
             foreach ($item['orderProduct'] as $value){
-                $product = $product.$value['cart_info']['product']['store_name'].'【'. $value['cart_info']['productAttr']['sku'] .'】【' . $value['product_num'].'】'.PHP_EOL;
+                $product = $product.$value['cart_info']['product']['store_name'].'【'. $value['cart_info']['productAttr']['sku'] .'】【' . $value['refund_num'].'】'.PHP_EOL;
             }
             $export[] = [
                 $k+1,
@@ -455,7 +455,7 @@ class ExcelService
         //平台
         if(!$where['is_mer']){
             $header = ['商户类别','商户分类','商户名称','总订单号','订单编号','交易流水号','交易时间', '对方信息','交易类型','收支金额','备注'];
-            $list = $query->page($page, $limit)->order('create_time DESC')->select();
+            $list = $query->page($page, $limit)->order('financial_record_id DESC')->select();
             try{
                 foreach ($list as $value) {
                     $order = $order_make->get($value['order_id']);
@@ -487,7 +487,7 @@ class ExcelService
         }else{
             $header = ['序号','总订单号','子订单编号','交易流水号','交易时间', '对方信息','交易类型','收支金额','备注'];
             $mer_name = '';
-            $list = $query->page($page, $limit)->order('create_time DESC')->select();
+            $list = $query->page($page, $limit)->order('financial_record_id DESC')->select();
             foreach ($list as $key => $value) {
                 $order = $order_make->get($value['order_id']);
                 $export[] = [
@@ -564,6 +564,7 @@ class ExcelService
             3 => '已退款',
             -1=> '审核未通过',
             -2=> '退款失败',
+            -10 =>'用户取消',
         ];
         $count= $query->count();
         $data = $query->page($page,$limit)->select()->toArray();

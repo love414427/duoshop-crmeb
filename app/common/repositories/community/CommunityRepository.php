@@ -22,6 +22,7 @@ use app\common\repositories\user\UserRepository;
 use crmeb\services\QrcodeService;
 use FormBuilder\Factory\Elm;
 use think\exception\ValidateException;
+use think\facade\Cache;
 use think\facade\Db;
 use think\facade\Route;
 
@@ -115,57 +116,69 @@ class CommunityRepository extends BaseRepository
         $list = $query->page($page, $limit)->setOption('field',[])
             ->field('community_id,title,image,topic_id,Community.count_start,count_reply,start,Community.create_time,Community.uid,Community.status,is_show,content,video_link,is_type,refusal')
             ->select()->append(['time']);
-        if ($list) $list = $list->toArray();
         return compact('count','list');
     }
 
-    public function getFirtVideo($where,$page, $userInfo)
+    public function getFirst($community_id, $userInfo)
     {
-        $with =[];
-        if ($page == 1) {
-            $with = [
-                'author' => function($query) {
+        $where['is_del'] = 0;
+        $where['community_id'] = $community_id;
+        $info = $this->dao->search($where)
+            ->with([
+                'author' => function ($query) use ($userInfo) {
                     $query->field('uid,real_name,status,avatar,nickname,count_start');
                 },
-                'is_start' => function($query) use ($userInfo) {
-                    $query->where('left_id',$userInfo->uid ?? null);
+                'is_start' => function ($query) use ($userInfo) {
+                    $query->where('left_id', $userInfo->uid ?? null);
                 },
-                'topic' => function($query) {
-                    $query->where('status', 1)->where('is_del',0);
+                'topic' => function ($query) {
+                    $query->where('status', 1)->where('is_del', 0);
                     $query->field('topic_id,topic_name,status,category_id,pic,is_del');
                 },
-                'relevance'  => [
-                    'spu' => function($query) {
-                        $query->field('spu_id,store_name,image,price,product_type,activity_id,product_id,status');
+                'relevance' => [
+                    'spu' => function ($query) {
+                        $query->field('spu_id,store_name,image,price,product_type,activity_id,product_id');
                     }
                 ],
-                'is_fans' => function($query) use($userInfo){
-                    $query->where('left_id',$userInfo->uid??  0);
+                'is_fans' => function ($query) use ($userInfo) {
+                    $query->where('left_id', $userInfo->uid ?? 0);
                 }
-            ];
+            ])
+            ->field('community_id,title,image,topic_id,Community.count_start,count_reply,start,Community.create_time,Community.uid,Community.status,is_show,content,video_link,is_type,refusal')
+            ->find();
+        if($info){
+            $info = $info->append(['time']);
         }
-        return $this->dao->getSearch($where)->with($with)->field('community_id,image,title,topic_id,count_start,count_reply,start,create_time,uid,status,is_show,content,video_link,is_type,refusal')->find();
+
+        return $info;
     }
 
     public function getApiVideoList(array $where, int $page, int $limit, $userInfo, $type = 0)
     {
         $where['is_type'] = self::COMMUNIT_TYPE_VIDEO;
-        $first = $this->getFirtVideo($where,$page, $userInfo);
+        $first = $this->getFirst($where['community_id'],$userInfo);
+
         if ($type) { // 点赞过的内容
             $where['uid'] = $userInfo->uid;
             $where['community_ids'] = $this->dao->joinUser($where)->column('community_id');
         } else { // 条件视频
             if (!isset($where['uid']) && $first) $where['topic_id'] = $first['topic_id'];
         }
-        $where['not_id'] = $where['community_id'];
+        if ($first) {
+            $where['not_id'] = $where['community_id'];
+            $limit--;
+        }
+
         unset($where['community_id']);
         $data = $this->getApiList($where, $page, $limit, $userInfo);
         if (empty($data['list']) && isset($where['topic_id'])) {
             unset($where['topic_id']);
             $data = $this->getApiList($where, $page, $limit, $userInfo);
         }
-        if ($page == 1 && $first) {
-            array_unshift($data['list'],$first->toArray());
+
+        if ($first && !$data['list']->isEmpty()) {
+            $data['list']->unshift($first);
+            $data['count']++;
         }
         return $data;
     }
@@ -476,10 +489,11 @@ class CommunityRepository extends BaseRepository
     public function getDataBySpu($spuId)
     {
         $where = array_merge(['spu_id' => $spuId], self::IS_SHOW_WHERE);
-        return $this->dao->getSearch($where)
+        $result = $this->dao->getSearch($where)
+            ->field('community_id,title,image,is_type,create_time')
             ->order('create_time DESC')
-            ->field('community_id,title,image,is_type')
             ->limit(3)->select();
+        return $result;
     }
 
     public function qrcode($id, $type,$user)

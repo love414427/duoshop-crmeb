@@ -51,6 +51,13 @@ class RelevanceRepository extends BaseRepository
     //商品参数关联
     const PRODUCT_PARAMES_CATE = 'product_params_cate';
 
+    //DIY默认模板适用范围 0. 指定店铺、1. 指定商户分类、2. 指定店铺类型、3. 指定商户类别
+    const  MER_DIY_SCOPE = [
+        'mer_diy_scope_0',
+        'mer_diy_scope_1',
+        'mer_diy_scope_2',
+        'mer_diy_scope_3',
+    ];
     protected $dao;
     /**
      * RelevanceRepository constructor.
@@ -76,13 +83,11 @@ class RelevanceRepository extends BaseRepository
         if ($check && $this->checkHas($leftId, $rightId, $type))  {
             return false;
         }
-
         $data = [
             'left_id' => $leftId,
             'right_id'=> $rightId,
             'type'    => $type,
         ];
-
         try{
             $this->dao->create($data);
             return true;
@@ -146,7 +151,7 @@ class RelevanceRepository extends BaseRepository
     /**
      * TODO 关注我的人
      * @param int $uid
-     * @return \think\Collection
+     * @return array
      * @author Qinii
      * @day 10/28/21
      */
@@ -162,13 +167,22 @@ class RelevanceRepository extends BaseRepository
         ]);
         $count = $query->count();
         $list = $query->page($page, $limit)->select()->append(['is_start']);
+        $data = [];
+        foreach ($list as $item) {
+            if (!$item['fans']) {
+                $item->delete();
+                $count -= 1;
+            }
+            $data[] = $item;
+        }
+        $list = $data;
         return compact('count','list');
     }
 
     /**
      * TODO 我关注的人
      * @param $uid
-     * @return \think\Collection
+     * @return array
      * @author Qinii
      * @day 10/28/21
      */
@@ -184,6 +198,15 @@ class RelevanceRepository extends BaseRepository
         ]);
         $count = $query->count();
         $list = $query->page($page, $limit)->select()->append(['is_fans']);
+        $data = [];
+        foreach ($list as $item) {
+            if (!$item['focus']) {
+                $item->delete();
+                $count -= 1;
+            }
+            $data[] = $item;
+        }
+        $list = $data;
         return compact('count','list');
     }
 

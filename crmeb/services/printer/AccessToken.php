@@ -70,17 +70,27 @@ class AccessToken extends HttpService
      * api key
      * @var string
      */
-    protected $apiKey;
+    protected $apiKey ;
+    protected $type;
+    const HOST = [
+        'https://open-api.10ss.net/',
+        'http://api.feieyun.cn/Api/Open/',
+    ];
 
     public function __construct(array $config = [], string $name, string $configFile)
     {
-        $this->clientId = $config['clientId'] ?? null;
-        $this->apiKey = $config['apiKey'] ?? null;
-        $this->partner = $config['partner'] ?? null;
+        //打印机编号
         $this->machineCode = $config['terminal'] ?? null;
+        //appkey
+        $this->clientId = $config['clientId'] ?? null;
+        //用户
+        $this->partner = $config['partner'] ?? null;
+        $this->apiKey = $config['apiKey'] ?? null;
+        //打印机类型
+        $this->type = $config['type'] ?? 0;
         $this->name = $name;
         $this->configFile = $configFile;
-        $this->apiUrl = Config::get($this->configFile . '.stores.' . $this->name . '.apiUrl', 'https://open-api.10ss.net/');
+        $this->apiUrl = self::HOST[$this->type];
     }
 
     /**
@@ -109,7 +119,6 @@ class AccessToken extends HttpService
      */
     protected function getYiLianYunAccessToken()
     {
-        /** @var CacheServices $cacheServices */
          if(!$this->accessToken[$this->name] = Cache::get('YLY_access_token_'.$this->clientId)){
              $token = $this->getToken();
              Cache::set('YLY_access_token_'.$this->clientId,$token, 18 * 86400);
@@ -117,9 +126,9 @@ class AccessToken extends HttpService
          }
         if (!$this->accessToken[$this->name])
             throw new \Exception('获取access_token获取失败');
-
         return $this->accessToken[$this->name];
     }
+
 
     protected function getToken () {
         $data = [

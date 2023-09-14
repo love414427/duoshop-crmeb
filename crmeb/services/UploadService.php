@@ -66,12 +66,14 @@ class UploadService
         $storage_name   = isset($prefix) ? $prefix.'_storage_name'   : 'storage_name';
         //所属地域
         $storage_region = isset($prefix) ? $prefix.'_storage_region' : 'storage_region';
+        //图片压缩限值
+        $upload_max_size = isset($prefix) ? $prefix.'_upload_max_size' : 'upload_max_size';
 
         $cdn            = isset($prefix) ? $prefix.'_cdn'            : 'oss_cdn';
         $thumb_status   = isset($prefix) ? $prefix.'_thumb_status'   : 'thumb_status';
         $thumb_rate     = isset($prefix) ? $prefix.'_thumb_rate'     : 'thumb_rate';
 
-        $data = systemConfig([$accessKey, $secretKey, $auploadUrl, $storage_name, $storage_region, $cdn,$thumb_status,$thumb_rate]);
+        $data = systemConfig([$accessKey, $secretKey, $auploadUrl, $storage_name, $storage_region, $cdn,$thumb_status,$thumb_rate,$upload_max_size]);
         if ($data[$cdn]) {
             if (substr( $data[$cdn],0,4)  !== 'http') {
                 $data[$cdn] = 'https'.$data[$cdn];
@@ -86,9 +88,9 @@ class UploadService
             'cdn'   =>   rtrim($data[$cdn],'/'),
             'thumb_status' => $data[$thumb_status],
             'thumb_rate' => $data[$thumb_rate],
+            'upload_max_size' => $data[$upload_max_size] ? $data[$upload_max_size] * 1048576 : 0,
             'image_suffix' => ['jpg', 'jpeg', 'png', 'gif','webp']
         ];
-
         return new Upload($type, $config);
     }
 }

@@ -57,7 +57,7 @@ class RoleRepository extends BaseRepository
     {
         $query = $this->dao->search($merId, $where);
         $count = $query->count();
-        $list = $query->page($page, $limit)->hidden(['update_time'])->select();
+        $list = $query->page($page, $limit)->select();
 
         foreach ($list as $k => $role) {
             $list[$k]['rule_name'] = $role->ruleNames();

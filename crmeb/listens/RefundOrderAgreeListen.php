@@ -26,7 +26,7 @@ class RefundOrderAgreeListen extends TimerService implements ListenerInterface
         $this->tick(1000 * 60 * 5, function () {
             $make = app()->make(StoreRefundOrderRepository::class);
             request()->clearCache();
-            $merAgree = systemConfig('mer_refund_order_agree') ?? 7;
+            $merAgree = systemConfig('mer_refund_order_agree') ?: 7;
             $time = date('Y-m-d H:i:s', strtotime('-' . $merAgree . ' day'));
             $data = $make->getTimeOutIds($time);
             foreach ($data as $id) {
